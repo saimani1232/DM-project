@@ -1,7 +1,7 @@
 # Optimization and Machine Learning Prediction of Tensile and Compressive Strengths for Additively Manufactured ABS Automotive Components
 
 **Course:** Introduction to Digital Manufacturing
-**Team:** 016 – Gedela Kiran Kumar; 021 – Kapuluru Chenchu Sai Sashank; 028 – Sai Mani; 035 – Perumalla Krishna Murthy
+**Team:** Gedela Kiran Kumar (016), Kapuluru Chenchu Sai Sashank (021), Sai Mani (028), Perumalla Krishna Murthy (035)
 **Institution:** Department of Computer Science and Engineering, Amrita Vishwa Vidyapeetham, Amaravati Campus
 **Base paper:** G.A. Munshi, V.M. Kulkarni, S. Yargatti, "Computation of tensile and compressive strengths of additively manufactured ABS material for automotive applications using ANN algorithms", *Next Materials* 10 (2026) 101420. https://doi.org/10.1016/j.nxmate.2025.101420
 **Dataset source:** https://doi.org/10.5281/zenodo.15449938 (Zenodo record 15449938, version 4, CC-BY 4.0)
@@ -9,28 +9,22 @@
 ---
 
 ## Abstract
-Material extrusion, also called fused deposition modelling (FDM), is increasingly used to make functional automotive parts from acrylonitrile butadiene styrene (ABS), but the strength of a printed part depends strongly on the process parameters. This work builds on the study of Munshi et al., which predicted the tensile and compressive strength of FDM-printed ABS with artificial neural networks (ANNs), and uses the same openly published 383-record dataset with five process parameters: nozzle temperature, bed temperature, print speed, layer height and infill density. Nine regression models were trained and compared: replications of the paper's Adam-optimised and Bayesian-regularised ANNs, three classical regressors and four tree ensembles. Every model was evaluated with nine metrics (MSE, RMSE, MAE, MAPE, R², adjusted R², explained variance, maximum error and median absolute error) under an 80/20 hold-out split and 5-fold cross-validation. Histogram-based gradient boosting performed best on almost every metric, with a cross-validated R² of 0.9995 for both strengths, RMSEs of 0.25 MPa (tensile) and 0.31 MPa (compressive) and a mean absolute percentage error of about 0.65 %. SHAP analysis, expressed in MPa, explains every individual prediction: infill density contributes about 62 % of the explained variation, layer height about 23 % and print speed about 11 %, while bed temperature has no measurable effect. A robust differential-evolution optimiser, verified against an exhaustive search of all 960 tested parameter combinations, identifies the maximum-strength recipe: 0.2 mm layers, at least 95 % infill and at most 35 mm/s. This recipe gives about 50.4 MPa tensile and 63.0 MPa compressive strength. Constrained optimisation gives the fastest recipes that meet the requirements of the paper's two automotive case studies: a brake pedal (compressive strength ≥ 45 MPa, 75 % shorter print time than the maximum-strength recipe) and a door handle (tensile strength ≥ 30 MPa, 87.5 % shorter print time).
+Fused deposition modelling (FDM), also called material extrusion, is now used to make functional automotive parts from acrylonitrile butadiene styrene (ABS). How strong a printed part turns out depends heavily on the process parameters. Munshi et al. predicted the tensile and compressive strength of FDM-printed ABS with artificial neural networks (ANNs) and published their 383-record dataset, which covers five parameters: nozzle temperature, bed temperature, print speed, layer height and infill density. We used the same data to train and compare nine regression models: our replications of the paper's Adam-optimised and Bayesian-regularised ANNs, three classical regressors and four tree ensembles. Each model was scored with nine metrics (MSE, RMSE, MAE, MAPE, R², adjusted R², explained variance, maximum error and median absolute error), both on an 80/20 hold-out split and in 5-fold cross-validation. Histogram-based gradient boosting came out best on almost every metric. Its cross-validated R² was 0.9995 for both strengths, with RMSEs of 0.25 MPa (tensile) and 0.31 MPa (compressive) and a mean absolute percentage error of about 0.65 %. We used SHAP to break each prediction down into contributions in MPa. Infill density accounts for about 62 % of the explained variation, layer height for about 23 % and print speed for about 11 %, and bed temperature has no measurable effect. A robust differential-evolution optimiser, checked against an exhaustive search of all 960 tested parameter combinations, found the strongest recipe to be 0.2 mm layers, at least 95 % infill and at most 35 mm/s, which gives about 50.4 MPa tensile and 63.0 MPa compressive strength. With constraints added, the same optimiser found the fastest recipes for the paper's two automotive case studies. A brake pedal needing a compressive strength of at least 45 MPa prints 75 % faster than the maximum-strength recipe, and a door handle needing a tensile strength of at least 30 MPa prints 87.5 % faster.
 
 **Keywords:** Digital manufacturing; Fused deposition modelling; ABS; Machine learning; Gradient boosting; Regression metrics; SHAP explainability; Differential evolution; Process optimisation; Automotive components
 
 ---
 
 ## 1. Introduction
-Additive manufacturing (AM) lets automotive manufacturers produce brackets, ducts, interior trim and functional prototypes without tooling. Material extrusion, commonly called fused deposition modelling (FDM), is the most widely used polymer AM process. ABS is one of its most common materials because of its toughness, impact resistance and a heat-deflection temperature of about 80 °C [1]. An FDM part, however, is built bead by bead and layer by layer. Its strength therefore depends on how well neighbouring beads fuse and on how much solid material fills the part, and both are governed by the process parameters [2, 3, 4]:
+Additive manufacturing (AM) lets car makers produce brackets, ducts, interior trim and functional prototypes without tooling. Material extrusion, usually called fused deposition modelling (FDM), is the most widely used polymer AM process, and ABS is one of its most common materials because it is tough, resists impact and has a heat-deflection temperature of about 80 °C [1]. An FDM part is built bead by bead and layer by layer, so its strength depends on how well neighbouring beads fuse and on how much solid material fills the part. Both are set by the process parameters [2, 3, 4]. Nozzle temperature controls the melt viscosity and how far polymer chains diffuse across bead interfaces. Bed temperature limits warping and residual stress near the build plate. Print speed decides how much time a bead has to bond before it cools. Layer height sets the bead cross-section and the size of the voids between beads, and infill density sets how much of the part's interior carries load.
 
-1. **Nozzle temperature** controls melt viscosity and the diffusion of polymer chains across bead interfaces.
-2. **Bed temperature** limits warping and residual stresses near the build plate.
-3. **Print speed** sets the time available for bonding before the bead cools.
-4. **Layer height** sets the bead cross-section and the size of the voids between beads.
-5. **Infill density** sets the fraction of the part's interior that carries load.
+Several earlier studies modelled these effects. Sood et al. [2] related layer thickness, orientation, raster angle, raster width and air gap to the strength of FDM ABS parts with response-surface methodology. Rayegani and Onwubolu [5] predicted FDM tensile strength with group-method-of-data-handling networks and optimised it with differential evolution. Alafaghani et al. [3] studied infill, layer height and extrusion temperature with Taguchi experiments, and Mohamed et al. [4] reviewed the optimisation of FDM parameters. Design-of-experiments and response-surface models like these capture only low-order effects of the parameters. Machine learning (ML) can learn the full non-linear relationship from data, and the reviews of Meng et al. [6] and Goh et al. [7] point to it as the main tool for process–property modelling in AM. Most recently, Munshi et al. [1] compiled 383 tensile and compressive strength records of FDM-printed ABS and published them openly [8]. They trained Adam-optimised and Bayesian-regularised ANNs, reported R² = 0.93/0.98 (Adam) and 0.90/0.95 (Bayesian) for tensile/compressive strength on a Taguchi L15 validation set, and discussed a brake pedal and a door handle as automotive applications.
 
-**Existing work.** Sood et al. [2] related layer thickness, orientation, raster angle, raster width and air gap to the strength of FDM ABS parts with response-surface methodology. Rayegani and Onwubolu [5] predicted FDM tensile strength with group-method-of-data-handling networks and optimised it with differential evolution. Alafaghani et al. [3] studied infill, layer height and extrusion temperature with Taguchi experiments, and Mohamed et al. [4] reviewed the optimisation of FDM parameters. These design-of-experiments and response-surface models capture only low-order effects of the parameters. The reviews of Meng et al. [6] and Goh et al. [7] identify machine learning (ML), which learns the full non-linear relationship from data, as the key tool for process–property modelling in AM. Most recently, Munshi et al. [1] compiled 383 tensile and compressive strength records of FDM-printed ABS and published them openly [8]. They trained Adam-optimised and Bayesian-regularised ANNs, reported R² = 0.93/0.98 (Adam) and 0.90/0.95 (Bayesian) for tensile/compressive strength on a Taguchi L15 validation set, and discussed a brake pedal and a door handle as automotive applications.
+This work relies mainly on tree ensembles, which are among the most accurate ML models for small tabular datasets. A random forest [9] averages many decorrelated decision trees, which reduces variance. Gradient boosting adds trees one after another, each correcting the errors of the previous ones; histogram-based gradient boosting [10] and XGBoost [11] are fast, regularised implementations of this idea. SHAP (SHapley Additive exPlanations) [12] uses cooperative game theory to split each individual prediction exactly into the contributions of the input parameters. Differential evolution [13] is a population-based global optimiser that needs no gradients, which suits tree models whose predictions change in steps. All methods were implemented in Python with scikit-learn [14] and SciPy [15].
 
-**Techniques used in this work.** Tree ensembles are among the most accurate ML models for small tabular datasets. A random forest [9] averages many decorrelated decision trees, which reduces variance. Gradient boosting adds trees one after another, each correcting the errors of the previous ones; histogram-based gradient boosting [10] and XGBoost [11] are fast, regularised implementations of this idea. SHAP (SHapley Additive exPlanations) [12] uses cooperative game theory to split each individual prediction exactly into the contributions of the input parameters. Differential evolution [13] is a population-based global optimiser that needs no gradients, which suits tree models whose predictions change in steps. All methods were implemented in Python with scikit-learn [14] and SciPy [15].
+The study of [1] leaves three questions open. First, it does not evaluate modern tree ensembles on its own data: the comparison models in its tables come from other studies on other datasets. Second, it does not explain *why* a model predicts a given strength for a given recipe. Third, it does not search for the optimal printing parameters, which it lists as future work.
 
-**Literature gap.** The study of [1] leaves three questions open. First, it does not evaluate modern tree ensembles on its own data: the comparison models in its tables come from other studies on other datasets. Second, it does not explain *why* a model predicts a given strength for a given recipe. Third, it does not search for the optimal printing parameters, which it lists as future work.
-
-**This work.** The objectives of this project were therefore to:
+To address them, this project set out to:
 
 1. replicate the paper's models on the same dataset and compare the results directly with its published tables;
 2. evaluate nine models with nine regression metrics under hold-out and 5-fold cross-validation, and explain what the metrics show;
@@ -38,19 +32,19 @@ Additive manufacturing (AM) lets automotive manufacturers produce brackets, duct
 4. formally optimise the process parameters, analyse their sensitivity and derive recipes for the two automotive case studies;
 5. make the trained model available as an interactive simulator.
 
-Section 2 describes the dataset and methodology, Section 3 presents and discusses the results, and Section 4 concludes the report.
+Section 2 covers the dataset and methods, Section 3 presents and discusses the results, and Section 4 gives the conclusions.
 
 ---
 
 ## 2. Methodology
 
-Figure 1 summarises the workflow. The dataset is pre-processed, nine models are trained and evaluated, the best model is refitted on all data, and that model is then used for the explanations, the optimisation, the case studies and the simulator.
+Figure 1 shows the workflow. After pre-processing, nine models are trained and evaluated. The best one is refitted on all the data and used for the explanations, the optimisation, the case studies and the simulator.
 
 ![Workflow](../paper/figures/fig_pipeline.png)
 *Figure 1. Overview of the workflow, from the dataset to explanations, robust optimisation and the interactive simulator.*
 
 ### 2.1 Dataset
-The dataset is the one released with the base paper on Zenodo [8] (file `Experimental Dataset.xlsx`, record 15449938, version 4). According to Section 2.5 of [1], it contains 383 tensile and compressive strength values of virgin, commercial-grade ABS. The values were compiled from peer-reviewed studies and test reports on ASTM D638 (tensile) and ASTM D695 (compressive) standard specimens [16, 17], and outliers beyond 3σ were removed. There are no missing values and no duplicate rows. Table 1 summarises the data.
+We used the dataset that the base paper released on Zenodo [8] (file `Experimental Dataset.xlsx`, record 15449938, version 4). Section 2.5 of [1] describes it as 383 tensile and compressive strength values of virgin, commercial-grade ABS, compiled from peer-reviewed studies and test reports on ASTM D638 (tensile) and ASTM D695 (compressive) standard specimens [16, 17], with outliers beyond 3σ removed. It has no missing values and no duplicate rows. Table 1 summarises it.
 
 **Table 1. Descriptive statistics of the dataset (n = 383).**
 
@@ -64,31 +58,28 @@ The dataset is the one released with the base paper on Zenodo [8] (file `Experim
 | Tensile strength (MPa) | 5.8 | 50.6 | 23.11 | 11.99 | 0.34 | 57 distinct values |
 | Compressive strength (MPa) | 7.3 | 63.3 | 28.91 | 14.98 | 0.34 | 57 distinct values |
 
-Every parameter takes only a few discrete levels, and layer height in particular has just two (0.2 and 0.8 mm). The optimiser therefore searches only inside this window and treats layer height as a two-level factor (Section 2.6). All skewness values are small (|skew| < 0.5), so no transformation of the variables was needed.
+Each parameter takes only a few discrete levels, and layer height has just two (0.2 and 0.8 mm). For that reason the optimiser searches only inside this window and treats layer height as a two-level factor (Section 2.6). All skewness values are small (|skew| < 0.5), so we did not transform any variable.
 
 ### 2.2 Pre-processing and validation
-Inputs and targets were min-max scaled to [0, 1], as in Section 2.5.2 of [1]. The scalers are part of each model pipeline, so they are fitted on the training portion of every split only and no information leaks from the test data. All results are reported in MPa after inverse scaling. Two validation schemes were used:
+Inputs and targets were min-max scaled to [0, 1], as in Section 2.5.2 of [1]. The scalers sit inside each model pipeline, so they are fitted only on the training part of each split and nothing leaks from the test data. All results are reported in MPa after inverse scaling.
 
-* **Hold-out:** 80 % training (306 records) and 20 % testing (77 records), random seed 42.
-* **5-fold cross-validation (CV):** shuffled K-fold (seed 42) on all 383 records. A fresh, independently trained model is used in every fold, and the mean ± standard deviation of every metric is reported.
-
-The best model is chosen by its mean cross-validated R² over both strengths. For the explanations and the optimisation, it is then refitted on all 383 records.
+We used two validation schemes. The hold-out split puts 80 % of the records (306) in training and 20 % (77) in testing, with random seed 42. The 5-fold cross-validation (CV) is a shuffled K-fold (seed 42) over all 383 records; every fold trains a fresh model, and we report the mean ± standard deviation of each metric. The model with the highest mean cross-validated R² over both strengths is selected and then refitted on all 383 records for the explanations and the optimisation.
 
 ### 2.3 Models
-*Replications of the base paper (Section 2.6 of [1]):*
-1. **Adam-optimised ANN:** two hidden layers of 20 tanh neurons, Adam optimiser, learning rate 10⁻³, batch size 32, 1000 epochs, mean-squared-error loss. The paper does not state the layer width, so 20 neurons was assumed.
-2. **Bayesian-regularised ANN:** two hidden layers of 20 tanh neurons and a linear output. MATLAB's Bayesian-regularisation training is not available in scikit-learn, so it was approximated with a quasi-Newton optimiser (L-BFGS) and an L2 weight penalty (α = 0.01).
-3. **Classical models** from the paper's comparison tables: support vector regression (SVR, RBF kernel, C = 20, ε = 0.05), a decision tree (maximum depth 7) and AdaBoost (100 estimators).
+The first group replicates the base paper's models (Section 2.6 of [1]):
+1. Adam-optimised ANN: two hidden layers of 20 tanh neurons, Adam optimiser, learning rate 10⁻³, batch size 32, 1000 epochs, mean-squared-error loss. The paper does not state the layer width, so 20 neurons was assumed.
+2. Bayesian-regularised ANN: two hidden layers of 20 tanh neurons and a linear output. MATLAB's Bayesian-regularisation training is not available in scikit-learn, so it was approximated with a quasi-Newton optimiser (L-BFGS) and an L2 weight penalty (α = 0.01).
+3. The classical models from the paper's comparison tables: support vector regression (SVR, RBF kernel, C = 20, ε = 0.05), a decision tree (maximum depth 7) and AdaBoost (100 estimators).
 
-*Proposed ensembles:*
+The second group contains the ensembles we propose:
 
-4. **Tuned random forest** (300 trees, maximum depth 12) [9].
-5. **Extra trees** (300 trees, maximum depth 14).
-6. **Histogram-based gradient boosting (HGB):** 300 iterations, learning rate 0.05, maximum depth 6, L2 regularisation 0.1; one model per strength [10].
-7. **XGBoost:** 350 trees, learning rate 0.04, maximum depth 5, subsample 0.85; one model per strength [11].
+4. Tuned random forest (300 trees, maximum depth 12) [9].
+5. Extra trees (300 trees, maximum depth 14).
+6. Histogram-based gradient boosting (HGB): 300 iterations, learning rate 0.05, maximum depth 6, L2 regularisation 0.1; one model per strength [10].
+7. XGBoost: 350 trees, learning rate 0.04, maximum depth 5, subsample 0.85; one model per strength [11].
 
 ### 2.4 Evaluation metrics
-Each strength is evaluated separately with nine metrics. In the formulas, yᵢ is the measured value, ŷᵢ the prediction, ȳ the mean, n the number of samples and p = 5 the number of parameters. The first five metrics are those of the base paper (Eqs. 1–5 of [1]); the last four were added to give a complete picture.
+Each strength is scored separately with nine metrics. In the formulas, yᵢ is the measured value, ŷᵢ the prediction, ȳ the mean, n the number of samples and p = 5 the number of parameters. The first five metrics are the ones used in the base paper (Eqs. 1–5 of [1]), and we added the last four.
 
 | Metric | Formula | What it shows |
 |:--|:--|:--|
@@ -102,31 +93,29 @@ Each strength is evaluated separately with nine metrics. In the formulas, yᵢ i
 | Max error (MPa) | max \|yᵢ − ŷᵢ\| | Worst single prediction; important for safety-critical parts |
 | Median AE (MPa) | median \|yᵢ − ŷᵢ\| | Error of a typical prediction; robust to outliers |
 
-The base paper's published error values appear to be computed on normalised targets, since an MSE of 0.05 is impossible in MPa² for strengths of 6–63 MPa. We therefore also report MSE, RMSE and MAE after min-max scaling of the strengths, for a comparison on the same scale.
+The error values published in the base paper seem to be computed on normalised targets, since an MSE of 0.05 MPa² is impossible for strengths of 6–63 MPa. To compare on the same scale, we also report MSE, RMSE and MAE after min-max scaling the strengths.
 
 ### 2.5 Explainability
-Two explanation methods were used:
-* **Permutation importance:** the drop in hold-out R² when one parameter is randomly shuffled (15 repeats).
-* **SHAP** [12], computed with the exact TreeExplainer for the best model. Each prediction is split into a base value (the average prediction) plus one contribution per parameter. Because the target scaling is linear, the contributions were converted to MPa. The identity *base value + Σ contributions = prediction* was verified numerically for every record (maximum error < 10⁻¹² MPa).
+We used two explanation methods. Permutation importance measures how much the hold-out R² drops when one parameter is randomly shuffled (15 repeats). SHAP [12] was computed with the exact TreeExplainer for the best model; it splits each prediction into a base value (the average prediction) plus one contribution per parameter. Since the target scaling is linear, we converted the contributions to MPa, and we checked numerically that base value + Σ contributions = prediction for every record (maximum error < 10⁻¹² MPa).
 
 ### 2.6 Optimisation
-**Design space.** Nozzle temperature (200–250 °C), bed temperature (50–110 °C), print speed (10–70 mm/s) and infill density (20–100 %) are continuous variables. Layer height is enumerated over {0.2, 0.8} mm.
+Nozzle temperature (200–250 °C), bed temperature (50–110 °C), print speed (10–70 mm/s) and infill density (20–100 %) are continuous variables. Layer height is enumerated over {0.2, 0.8} mm.
 
-**Robust objective.** Tree ensembles predict in steps, and the steps fall half-way between the tested levels, where no data exist. A naive optimiser therefore tends to place a recipe exactly on a step edge, where a small machine deviation causes a large loss of strength. Each recipe is therefore scored by its **worst-case predicted strength** over a process tolerance band of ±5 °C (nozzle and bed), ±5 mm/s (speed) and ±5 % (infill), evaluated on a 3⁴ = 81-point grid.
+Tree ensembles predict in steps, and the steps fall half-way between the tested levels, where there are no data. A plain optimiser tends to put a recipe right on a step edge, where a small machine deviation causes a large loss of strength. We therefore score each recipe by its worst-case predicted strength over a process tolerance band of ±5 °C (nozzle and bed), ±5 mm/s (speed) and ±5 % (infill), evaluated on a 3⁴ = 81-point grid.
 
-**Algorithm.** SciPy's differential evolution [13, 15] is run separately for each layer height: population 25 × 4, Sobol initialisation, mutation 0.5–1.0, recombination 0.7, up to 150 generations. Gradient polishing is disabled because the model has no useful gradient. Remaining ties on flat regions are broken in favour of the shortest print time. The recommended recipe is rounded to machine resolution (1 °C, 1 mm/s, 1 %) and checked against an **exhaustive search over all 960 tested level combinations** (6 × 4 × 4 × 2 × 5).
+SciPy's differential evolution [13, 15] is run separately for each layer height: population 25 × 4, Sobol initialisation, mutation 0.5–1.0, recombination 0.7, up to 150 generations. Gradient polishing is switched off because the model has no useful gradient, and ties on flat regions go to the recipe with the shortest print time. The recommended recipe is rounded to machine resolution (1 °C, 1 mm/s, 1 %) and checked against an exhaustive search over all 960 tested level combinations (6 × 4 × 4 × 2 × 5).
 
-**Objectives.**
+The optimiser handles three problems:
 1. Maximise tensile, compressive and composite strength S = 0.5·σt + 0.5·σc.
 2. Case studies: minimise print time subject to worst-case strength ≥ requirement + safety margin. The safety margin is 2 × the model's cross-validated RMSE (0.50 MPa tensile, 0.62 MPa compressive).
 3. Pareto front of worst-case composite strength against print time, computed on a dense grid of 34,034 recipes.
 
-**Print-time index.** Print time is proportional to the deposited volume divided by the volumetric flow rate, which is proportional to speed × layer height. With an assumed shell (perimeter, top and bottom) volume fraction φs = 0.30, the relative index is τ = 1000·(φs + (1 − φs)·ρ/100)/(v·h). A lower τ means faster production.
+Print time is proportional to the deposited volume divided by the volumetric flow rate, which is proportional to speed × layer height. With an assumed shell (perimeter, top and bottom) volume fraction φs = 0.30, the relative index is τ = 1000·(φs + (1 − φs)·ρ/100)/(v·h). A lower τ means a faster print.
 
-**Sensitivity analysis.** A one-at-a-time analysis around the optimum covers (a) local ±10 % changes of each parameter (for layer height, a switch to the other level), (b) full-range sweeps, and (c) the "near-optimal window": the range of each parameter that keeps at least 99 % of the optimal strength.
+Finally, a one-at-a-time sensitivity analysis around the optimum covers (a) local ±10 % changes of each parameter (for layer height, a switch to the other level), (b) full-range sweeps, and (c) the "near-optimal window": the range of each parameter that keeps at least 99 % of the optimal strength.
 
 ### 2.7 Implementation and interactive simulator
-The complete pipeline is a Python program (`run_project.py` with the modules in `src/`). It trains and evaluates all models, writes every table and figure in this report, and runs 42 self-checks before finishing (for example: optimum within the tested window, optimum at least as good as the exhaustive search, SHAP additivity). The trained model was also exported into a self-contained web page (Section 3.8). The page reproduces the model's predictions exactly, recomputes Shapley values live for the current recipe, runs virtual load tests of the two case-study parts, and animates the optimiser.
+The whole pipeline is one Python program (`run_project.py` plus the modules in `src/`). It trains and evaluates all models, writes every table and figure in this report, and runs 42 self-checks before it finishes, for example that the optimum lies inside the tested window, that it is at least as good as the exhaustive search, and that the SHAP values add up. We also exported the trained model into a self-contained web page (Section 3.8). The page gives exactly the same predictions, recomputes Shapley values live for the current recipe, runs virtual load tests on the two case-study parts and animates the optimiser.
 
 ---
 
@@ -136,7 +125,7 @@ The complete pipeline is a Python program (`run_project.py` with the modules in 
 ![Pearson correlation heatmap](../outputs/figures/pearson_correlation_heatmap.png)
 *Figure 2. Pearson correlation matrix of the five process parameters and the two strengths.*
 
-Figure 2 shows that the five process parameters are practically uncorrelated with each other (|r| ≤ 0.07), which is what a designed factor space should look like. Infill density is by far the strongest driver of both strengths (r = +0.927), followed by layer height (r = −0.348) and print speed (r = −0.162). Nozzle temperature (r = −0.039) and bed temperature (r = +0.036) show no linear effect. The paper reports the same ranking in its correlation analysis [1]. Tensile and compressive strength are perfectly correlated in this dataset (r = 1.000): compressive strength is 1.251 ± 0.003 times the tensile strength in every record. The two targets therefore carry the same information, which explains why every model performs almost identically on both of them in the following sections.
+In Figure 2 the five process parameters are practically uncorrelated with each other (|r| ≤ 0.07), as expected for a designed factor space. Infill density drives both strengths much more than anything else (r = +0.927), followed by layer height (r = −0.348) and print speed (r = −0.162). Nozzle temperature (r = −0.039) and bed temperature (r = +0.036) show no linear effect. The paper reports the same ranking in its correlation analysis [1]. Tensile and compressive strength are perfectly correlated in this dataset (r = 1.000): compressive strength is 1.251 ± 0.003 times the tensile strength in every record. The two targets carry the same information, which is why every model scores almost identically on both of them in the sections that follow.
 
 ### 3.2 Overall model performance
 
@@ -160,16 +149,18 @@ Figure 2 shows that the five process parameters are practically uncorrelated wit
 ![CV stability](../outputs/figures/metrics_cv_r2_stability.png)
 *Figure 4. 5-fold cross-validated R² of all models (mean ± standard deviation over the five folds).*
 
-Table 2 and Figure 3 give the overall picture. Every model reaches R² > 0.95, and all tree-based models and the Bayesian ANN reach R² > 0.997. The models fall into three groups:
+Table 2 and Figure 3 give the overall picture. Every model reaches R² > 0.95, and all tree-based models and the Bayesian ANN reach R² > 0.997. The results split the models into three groups.
 
-* **Tree ensembles and the decision tree (R² ≈ 0.998–0.9996, RMSE 0.25–0.61 MPa).** The strength in this dataset changes in steps between a few tested levels, which tree models represent naturally. HGB is the best of the group because boosting corrects the remaining errors step by step while its L2 regularisation and shallow trees prevent overfitting.
-* **Bayesian-regularised ANN (R² ≈ 0.998, RMSE 0.54–0.83 MPa).** The smooth tanh network fits the data well, but it has to approximate the step-like response with a smooth curve, which leaves errors of about 0.5–0.8 MPa near the steps.
-* **SVR, Adam-ANN and AdaBoost (R² 0.956–0.987, RMSE 1.4–3.1 MPa).** The SVR's smooth RBF kernel cannot follow the steps, the Adam-trained network with the paper's settings fits the data less closely, and AdaBoost with 100 shallow trees and a small learning rate underfits.
+The tree ensembles and the single decision tree do best (R² ≈ 0.998–0.9996, RMSE 0.25–0.61 MPa). Strength in this dataset changes in steps between a few tested levels, and trees represent steps naturally. HGB leads the group because boosting corrects the remaining errors one tree at a time, while L2 regularisation and shallow trees keep it from overfitting.
 
-Figure 4 shows that the cross-validated R² is very stable: the standard deviation over the five folds is at most 0.006 for every model. The ranking is therefore not an accident of one particular train/test split.
+The Bayesian-regularised ANN comes next (R² ≈ 0.998, RMSE 0.54–0.83 MPa). The smooth tanh network fits the data well, but it has to approximate a step-like response with a smooth curve, which leaves errors of about 0.5–0.8 MPa near the steps.
+
+SVR, the Adam-ANN and AdaBoost trail (R² 0.956–0.987, RMSE 1.4–3.1 MPa). The smooth RBF kernel of the SVR cannot follow the steps, the Adam-trained network with the paper's settings fits less closely, and AdaBoost with 100 shallow trees and a small learning rate underfits.
+
+Figure 4 shows that the cross-validated R² hardly changes between folds: its standard deviation is at most 0.006 for every model, so the ranking does not depend on one particular train/test split.
 
 ### 3.3 Detailed evaluation with nine metrics
-Tables 3 and 4 list all nine metrics on the hold-out test set for the tensile and the compressive strength. Figure 5 summarises the error metrics of all models as a heatmap, and Figure 6 shows all nine metrics for the three best models.
+Tables 3 and 4 list all nine hold-out metrics for tensile and compressive strength. Figure 5 shows the error metrics of every model as a heatmap, and Figure 6 shows all nine metrics for the three best models.
 
 **Table 3. All nine metrics on the hold-out test set (n = 77): tensile strength.**
 
@@ -205,12 +196,15 @@ Tables 3 and 4 list all nine metrics on the hold-out test set for the tensile an
 ![Top-3 metrics](../outputs/figures/metrics_top3_complete.png)
 *Figure 6. All nine metrics for the three best models on the hold-out set.*
 
-The nine metrics show different aspects of the models' behaviour, and together they justify choosing HGB:
+Each metric looks at a different side of the models' behaviour, and taken together they support choosing HGB.
 
-1. **Squared-error metrics (MSE, RMSE) and the R² family.** HGB has the lowest MSE and RMSE for both strengths (Tables 3 and 4). R², adjusted R² and explained variance therefore all rank it first. Adjusted R² is only about 0.0001 lower than R² for the best models, because 77 test samples are many compared with the 5 input parameters; the high R² is not an effect of having many inputs. Explained variance is practically equal to R² for every model, which means that no model has a systematic offset (bias) in its predictions.
-2. **Absolute-error metrics (MAE, median AE, MAPE).** Here the single decision tree looks slightly better than HGB, with a median absolute error of exactly 0 MPa. This is most likely a consequence of how the data are built: many test recipes fall into a leaf whose training recipes have exactly the same strength, so the tree returns that value without error. The same tree, however, has a larger maximum error (1.4 and 1.7 MPa) and a CV RMSE almost twice that of HGB (Table 2). It is right exactly or wrong by a lot, whereas HGB is consistently close.
-3. **Maximum error.** The random forest has the smallest single worst error on this particular test set (0.87/1.11 MPa) because averaging 300 trees smooths extreme predictions. Under cross-validation, however, HGB has the smallest mean maximum error (1.01/1.32 MPa, see the cross-validation results below). For safety-critical parts such as a brake pedal, this worst-case error matters more than the average, and it is the reason a 2 × RMSE safety margin is used in the case studies (Section 3.6).
-4. **MAPE.** The relative error weights the weakest specimens (5–10 MPa) most, because the same absolute error is a larger percentage of a small strength. AdaBoost, SVR and the Adam-ANN reach 7–10 %, so their errors are large relative to weak parts, while HGB stays below 0.6 % for both strengths.
+HGB has the lowest MSE and RMSE for both strengths (Tables 3 and 4), so R², adjusted R² and explained variance all rank it first as well. For the best models, adjusted R² is only about 0.0001 below R². With 77 test samples and just 5 input parameters, the high R² cannot be put down to the number of inputs. Explained variance is practically equal to R² for every model, so none of them has a systematic offset (bias) in its predictions.
+
+On the absolute-error metrics (MAE, median AE, MAPE) the single decision tree looks slightly better than HGB, with a median absolute error of exactly 0 MPa. This is most likely a result of how the data are built: many test recipes land in a leaf whose training recipes have exactly the same strength, and the tree returns that value without error. The same tree has a larger maximum error (1.4 and 1.7 MPa) and a CV RMSE almost twice that of HGB (Table 2). It is either exactly right or off by a lot, while HGB stays close every time.
+
+The random forest has the smallest single worst error on this test set (0.87/1.11 MPa), because averaging 300 trees smooths out extreme predictions. Under cross-validation, though, HGB has the smallest mean maximum error (1.01/1.32 MPa, see the cross-validation results below). For safety-critical parts such as a brake pedal the worst-case error matters more than the average, and it is the reason the case studies use a safety margin of 2 × RMSE (Section 3.6).
+
+MAPE gives the most weight to the weakest specimens (5–10 MPa), because the same absolute error is a larger percentage of a small strength. AdaBoost, SVR and the Adam-ANN reach 7–10 %, so their errors are large relative to weak parts. HGB stays below 0.6 % for both strengths.
 
 **Table 5. Fold-by-fold 5-fold cross-validation results of HGB (tensile / compressive).**
 
@@ -223,7 +217,7 @@ The nine metrics show different aspects of the models' behaviour, and together t
 | 5 | 0.167 / 0.208 | 0.125 / 0.151 | 0.655 / 0.627 | 0.9997 / 0.9997 |
 | **Mean ± std** | **0.249 ± 0.080 / 0.312 ± 0.107** | **0.150 / 0.181** | **0.658 / 0.636** | **0.9995 ± 0.0003** |
 
-Table 5 shows that HGB performs consistently in every fold: R² never drops below 0.9990, and the worst fold (fold 2) still has an RMSE of only 0.4–0.5 MPa. (Fold 1 contains the same 77 records as the hold-out test set because both use random seed 42, so its values equal those of Tables 3 and 4.) This contrasts with the base paper, which reports a mean absolute error of 5.5 for its Bayesian ANN under 5-fold cross-validation and attributes it to unstable early stopping in one fold [1].
+Table 5 shows HGB performing evenly across the folds. R² never drops below 0.9990, and even the worst fold (fold 2) has an RMSE of only 0.4–0.5 MPa. (Fold 1 contains the same 77 records as the hold-out test set because both use random seed 42, so its values equal those of Tables 3 and 4.) The base paper, by comparison, reports a mean absolute error of 5.5 for its Bayesian ANN under 5-fold cross-validation and blames it on unstable early stopping in one fold [1].
 
 **Table 6. 5-fold cross-validation means of the absolute-error metrics (tensile / compressive).**
 
@@ -239,7 +233,7 @@ Table 5 shows that HGB performs consistently in every fold: R² never drops belo
 | Adam ANN | 1.227 / 1.821 | 7.33 / 8.71 | 4.61 / 6.37 | 1.035 / 1.617 |
 | AdaBoost | 1.996 / 2.514 | 9.37 / 9.45 | 5.98 / 7.56 | 1.776 / 2.237 |
 
-Table 6 confirms the hold-out findings with all 383 records. Under cross-validation, HGB has the lowest MAE, MAPE and maximum error for both strengths, and only the decision tree's median error is lower, for the reason given above. The parity plot in Figure 7 shows every hold-out prediction of HGB against the measured value. All points lie on the 1:1 line and well inside the ±10 % band, with no visible bias at low or high strengths.
+Table 6 repeats the check on all 383 records. Under cross-validation HGB has the lowest MAE, MAPE and maximum error for both strengths; only the decision tree's median error is lower, for the reason given above. The parity plot in Figure 7 compares every hold-out prediction of HGB with the measured value. The points sit on the 1:1 line, well inside the ±10 % band, with no visible bias at low or high strengths.
 
 ![Parity plot](../outputs/figures/parity_plot_true_vs_pred.png)
 *Figure 7. Measured vs predicted strength on the hold-out test set (Histogram Gradient Boosting).*
@@ -252,13 +246,13 @@ Table 6 confirms the hold-out findings with all 383 records. Under cross-validat
 |:--|:--|:--:|:--:|
 | Adam-optimised ANN | Base paper (Taguchi L15 validation) | 0.93 | 0.98 |
 | Bayesian-regularised ANN | Base paper (Taguchi L15 validation) | 0.90 | 0.95 |
-| Decision tree | Base paper – other studies/datasets | 0.66 | 0.8741 |
-| SVM | Base paper – other studies/datasets | 0.80 | 0.9430 |
-| Random forest | Base paper – other studies/datasets | 0.74 | 0.8747 |
-| XGBoost | Base paper – other studies/datasets | 0.8962 | 0.9208 |
-| SVR | Base paper – other studies/datasets | 0.9215 | 0.8359 |
-| k-NN | Base paper – other studies/datasets | 0.8443 | 0.9340 |
-| AdaBoost | Base paper – other studies/datasets | 0.8893 | 0.9126 |
+| Decision tree | Base paper, other studies/datasets | 0.66 | 0.8741 |
+| SVM | Base paper, other studies/datasets | 0.80 | 0.9430 |
+| Random forest | Base paper, other studies/datasets | 0.74 | 0.8747 |
+| XGBoost | Base paper, other studies/datasets | 0.8962 | 0.9208 |
+| SVR | Base paper, other studies/datasets | 0.9215 | 0.8359 |
+| k-NN | Base paper, other studies/datasets | 0.8443 | 0.9340 |
+| AdaBoost | Base paper, other studies/datasets | 0.8893 | 0.9126 |
 | Adam-optimised ANN | **This work (replication)** | 0.9845 | 0.9744 |
 | Bayesian-regularised ANN | **This work (replication)** | 0.9975 | 0.9973 |
 | Histogram gradient boosting | **This work (proposed)** | **0.9996** | **0.9996** |
@@ -286,14 +280,15 @@ Table 6 confirms the hold-out findings with all 383 records. Under cross-validat
 | **HGB (ours)** | 5-fold | Tensile | **0.0686** | **0.2493** | **0.1497** | **0.658** | **0.0056** | **0.0033** |
 | **HGB (ours)** | 5-fold | Compressive | **0.1086** | **0.3117** | **0.1806** | **0.636** | **0.0056** | **0.0032** |
 
-**Discussion of the comparison (Tables 7 and 8).**
-1. *Replication.* Our Adam-ANN, built to the paper's description, reaches R² = 0.985/0.974, the same level as the paper's 0.93/0.98, so the replication is credible. Our Bayesian-ANN approximation is more accurate (0.997), probably because L-BFGS converges fully on this small, smooth problem.
-2. *Proposed models.* All four ensembles exceed every R² in the published table. HGB reduces the RMSE of our Adam-ANN replication about six-fold (0.26 vs 1.58 MPa for tensile strength) and is also better than the Bayesian ANN.
-3. *Fairness of the comparison.* The paper's ANN R² values were obtained on its own 15 Taguchi L15 prints, while ours come from held-out records of the dataset. The literature rows of the published Table 7 (decision tree, SVM, random forest, XGBoost, SVR, k-NN, AdaBoost) come from *other studies on other datasets*. Our work evaluates all models on the same data, which makes the comparison in Tables 2–6 like-for-like.
-4. *Scale of the published errors.* The published error values appear to be on normalised targets, and they are internally inconsistent: an MSE of 0.0523 implies an RMSE of 0.229, not 0.2031, and an MSE of 1.75 cannot coexist with an RMSE of 0.0125. On the normalised scale, HGB's RMSE of 0.0056–0.0058 is lower than all Adam-ANN values in the paper.
-5. *Why the R² values are so high.* The dataset is nearly deterministic: compressive strength is exactly 1.25 × tensile strength, bed temperature has no effect, and a depth-7 decision tree already reaches a median absolute error of 0 MPa. R² ≈ 0.9995 therefore describes the structure of this curated dataset, not the scatter expected from new physical specimens (Section 3.7).
+Our Adam-ANN, built to the paper's description, reaches R² = 0.985/0.974 (Table 7), the same level as the paper's 0.93/0.98, which suggests the replication is faithful. Our approximation of the Bayesian ANN does better (0.997), probably because L-BFGS converges fully on this small, smooth problem. All four ensembles beat every R² in the published table. HGB cuts the RMSE of our Adam-ANN replication about six-fold (0.26 vs 1.58 MPa for tensile strength) and also beats the Bayesian ANN.
 
-### 3.5 Explainability: why the model predicts what it predicts
+The comparison needs two caveats. The paper's ANN R² values come from its own 15 Taguchi L15 prints, while ours come from held-out records of the dataset. And the literature rows of the published Table 7 (decision tree, SVM, random forest, XGBoost, SVR, k-NN, AdaBoost) come from other studies on other datasets. Because we evaluate every model on the same data, the comparison in Tables 2–6 is like-for-like.
+
+The published error values (Table 8) seem to be on normalised targets, and they do not agree with each other: an MSE of 0.0523 implies an RMSE of 0.229, not 0.2031, and an MSE of 1.75 cannot go with an RMSE of 0.0125. On the normalised scale, HGB's RMSE of 0.0056–0.0058 is lower than every Adam-ANN value in the paper.
+
+The R² values are this high because the dataset is nearly deterministic. Compressive strength is exactly 1.25 × tensile strength, bed temperature has no effect, and a depth-7 decision tree already reaches a median absolute error of 0 MPa. R² ≈ 0.9995 describes the structure of this curated dataset, and new physical specimens would show more scatter (Section 3.7).
+
+### 3.5 Explainability
 
 ![Permutation importance](../outputs/figures/feature_importance.png)
 *Figure 8. Permutation importance of each parameter on the hold-out set (drop in R² when the parameter is shuffled).*
@@ -314,14 +309,11 @@ Table 6 confirms the hold-out findings with all 383 records. Under cross-validat
 | Nozzle temperature | 0.59 | 3.9 % | 0.75 | 3.9 % | 0.3 % |
 | Bed temperature | 0.01 | 0.1 % | 0.01 | 0.1 % | 0.0 % |
 
-**Global explanation (Figures 8–10, Table 9).** Both methods agree on the ranking infill density > layer height > print speed > nozzle temperature > bed temperature. Permutation importance gives infill a larger share (87.9 %) than SHAP (62.2 %) because it measures the loss of R² when a parameter is destroyed, which exaggerates the dominant parameter. SHAP divides the prediction itself fairly between the parameters. The physical reading of Figure 9 is:
-* **Infill density** dominates. Going from 20 % to 100 % infill moves the predicted tensile strength from about −17 MPa to about +19 MPa relative to the average. A denser infill gives a larger load-bearing cross-section and fewer internal voids.
-* **Layer height** comes second. Thin 0.2 mm layers add about 2.5–5 MPa, and thick 0.8 mm layers subtract a similar amount. Thicker beads leave larger voids between them and have less contact area between layers.
-* **Print speed** lowers strength above about 40 mm/s, because faster deposition leaves less time for neighbouring layers to fuse.
-* **Nozzle temperature** has a small effect (below 1 MPa), with the best values in the middle of the range (about 215–245 °C).
-* **Bed temperature** has no effect, in agreement with the base paper's own conclusion [1].
+Figures 8–10 and Table 9 give the global picture. Both methods rank the parameters the same way: infill density, then layer height, print speed, nozzle temperature and bed temperature. Permutation importance gives infill a larger share (87.9 %) than SHAP (62.2 %) because it measures the loss of R² when a parameter is scrambled, which inflates the dominant parameter, whereas SHAP shares out the prediction itself.
 
-The SHAP dependence analysis also reveals an interaction: with thin 0.2 mm layers, the effect of infill is amplified in both directions (a larger gain at 80–100 % infill and a larger penalty at 20–40 %).
+Read physically, Figure 9 says the following. Infill density dominates: going from 20 % to 100 % infill moves the predicted tensile strength from about −17 MPa to about +19 MPa relative to the average, since a denser infill gives a larger load-bearing cross-section and fewer internal voids. Layer height comes second. Thin 0.2 mm layers add about 2.5–5 MPa and thick 0.8 mm layers take away a similar amount, because thicker beads leave larger voids between them and touch the next layer over a smaller area. Print speed lowers strength above about 40 mm/s, as faster deposition leaves neighbouring layers less time to fuse. Nozzle temperature has a small effect (below 1 MPa), with the best values in the middle of the range (about 215–245 °C). Bed temperature has no effect, which matches the base paper's own conclusion [1].
+
+The SHAP dependence analysis also shows an interaction: with thin 0.2 mm layers, the effect of infill is amplified in both directions (a larger gain at 80–100 % infill and a larger penalty at 20–40 %).
 
 ![SHAP waterfall optimum](../outputs/figures/shap_waterfall_tensile_optimum.png)
 *Figure 11. Explanation of a single prediction: why the optimal recipe is predicted to reach 50.41 MPa tensile strength.*
@@ -329,11 +321,11 @@ The SHAP dependence analysis also reveals an interaction: with thin 0.2 mm layer
 ![SHAP waterfall weak sample](../outputs/figures/shap_waterfall_tensile_weak_test_sample.png)
 *Figure 12. Explanation of the weakest hold-out specimen (measured 5.8 MPa, predicted 5.56 MPa).*
 
-**Local explanation (Figures 11 and 12).** Every prediction can be split into exact MPa contributions. For the optimal recipe (222 °C, 94 °C, 35 mm/s, 0.2 mm, 96 %), Figure 11 reads:
+SHAP can also split any single prediction into exact MPa contributions (Figures 11 and 12). For the optimal recipe (222 °C, 94 °C, 35 mm/s, 0.2 mm, 96 %), Figure 11 reads:
 
 > 23.11 MPa (dataset average) + 18.89 (infill 96 %) + 4.84 (layer 0.2 mm) + 2.62 (speed 35 mm/s) + 0.95 (nozzle 222 °C) + 0.00 (bed 94 °C) = **50.41 MPa**.
 
-The weakest test specimen (210 °C, 110 °C, 70 mm/s, 0.8 mm, 20 %) is predicted at 5.56 MPa against a measured 5.8 MPa (Figure 12). Its low infill alone removes 13.2 MPa, and thick layers (−2.2 MPa) and high speed (−1.8 MPa) explain most of the rest. These explanations answer *why* a recipe is strong or weak, and they show which parameter to change first: infill, then layer height, then speed.
+The weakest test specimen (210 °C, 110 °C, 70 mm/s, 0.8 mm, 20 %) is predicted at 5.56 MPa against a measured 5.8 MPa (Figure 12). Its low infill alone takes away 13.2 MPa, and thick layers (−2.2 MPa) and high speed (−1.8 MPa) account for most of the rest. An explanation like this also tells a user what to change first to make a weak recipe stronger: infill, then layer height, then speed.
 
 ### 3.6 Optimal parameters, sensitivity and automotive case studies
 
@@ -346,7 +338,7 @@ The weakest test specimen (210 °C, 110 °C, 70 mm/s, 0.8 mm, 20 %) is predicted
 | Max composite | 222 | 94 | 35 | 0.2 | 96 | 50.41 | 63.02 | 50.41 / 63.02 | 138.9 |
 | Best of 960 tested combinations (exhaustive check) | 230 | 90 | 30 | 0.2 | 100 | 50.41 | 63.04 | – | 166.7 |
 
-Table 10 shows that all three objectives lead to the same optimum. This is expected, because σc ≈ 1.25·σt, so maximising one strength maximises the other. The optimiser matches the strength of the exhaustive-search optimum while printing 17 % faster (τ = 138.9 vs 166.7), because it finds that 35 mm/s and 96 % infill are as strong as 30 mm/s and 100 %. The worst-case strength equals the nominal strength, so the recipe stays at full strength even if the machine drifts by ±5 units. The nozzle and bed values differ between the objectives only because the strength is flat in those parameters near the optimum.
+All three objectives lead to the same optimum (Table 10). That is expected: σc ≈ 1.25·σt, so maximising one strength maximises the other. The optimiser matches the strength of the exhaustive-search optimum and prints 17 % faster (τ = 138.9 vs 166.7), because it finds that 35 mm/s and 96 % infill are as strong as 30 mm/s and 100 %. The worst-case strength equals the nominal strength, so the recipe keeps its full strength even if the machine drifts by ±5 units. The nozzle and bed values differ between objectives only because strength is flat in those parameters near the optimum.
 
 ![Sensitivity tornado](../outputs/figures/optimization_sensitivity.png)
 *Figure 13. Sensitivity around the composite optimum: change in strength over the full tested range and for a local ±10 % change of each parameter.*
@@ -364,7 +356,7 @@ Table 10 shows that all three objectives lead to the same optimum. This is expec
 | Nozzle temperature | 2.40 | 3.07 | 2.27 | 215 – 245 °C |
 | Bed temperature | 0.04 | 0.04 | 0.01 | 50 – 110 °C (no effect) |
 
-Figures 13 and 14 and Table 11 show how sensitive the optimum is to each parameter. Strength is very sensitive to infill (a 40 MPa swing over the range) and layer height (13 MPa), moderately sensitive to speed (9 MPa), and almost insensitive to the temperatures. The step shapes in Figure 14 are the tested levels of the data. **Recommended maximum-strength window:** layer height 0.2 mm, infill ≥ 95 %, print speed ≤ 35 mm/s, nozzle temperature 220–240 °C, and any bed temperature in 50–110 °C (chosen for warping control). The response surfaces in Figure 15 show the same picture over infill and nozzle temperature for both layer heights.
+Figures 13 and 14 and Table 11 show how sensitive the optimum is to each parameter. Strength reacts strongly to infill (a 40 MPa swing over the range) and layer height (13 MPa), moderately to speed (9 MPa) and hardly at all to the temperatures. The steps in Figure 14 sit at the tested levels of the data. For maximum strength we recommend a layer height of 0.2 mm, at least 95 % infill, a print speed of at most 35 mm/s and a nozzle temperature of 220–240 °C; the bed temperature can be anywhere in 50–110 °C and is best chosen to control warping. The response surfaces in Figure 15 show the same pattern over infill and nozzle temperature for both layer heights.
 
 ![Response surfaces](../outputs/figures/response_surface_contours.png)
 *Figure 15. Predicted strength over infill density × nozzle temperature for both tested layer heights (bed 90 °C, speed 30 mm/s).*
@@ -381,12 +373,12 @@ Figures 13 and 14 and Table 11 show how sensitive the optimum is to each paramet
 ![Pareto front](../outputs/figures/pareto_frontier_automotive.png)
 *Figure 16. Pareto front of worst-case composite strength vs relative print time; the two case-study recipes are marked.*
 
-Table 12 shows that both automotive parts can be printed with **thick 0.8 mm layers and high infill**. Thick layers cost about 13 MPa of strength compared with 0.2 mm layers, but they reduce the print time by about a factor of four. The brake pedal needs high compressive strength, so it uses a moderate speed (35 mm/s) and keeps σc = 47.2 MPa with a safety factor of 1.05. The door handle's lower requirement allows the maximum tested speed (70 mm/s). The Pareto front in Figure 16 (11 non-dominated recipes) shows the full trade-off. Up to τ ≈ 36, strength rises steeply as infill is increased and speed reduced at 0.8 mm layers, up to about 42.5 MPa composite strength. Beyond this "knee", further gains require 0.2 mm layers, which at least double the print time. The brake-pedal recipe sits close to this knee, where extra strength starts to become expensive in print time.
+Both automotive parts can be printed with thick 0.8 mm layers and high infill (Table 12). Thick layers cost about 13 MPa of strength compared with 0.2 mm layers, but they cut the print time roughly four-fold. The brake pedal needs high compressive strength, so it uses a moderate speed (35 mm/s) and keeps σc = 47.2 MPa with a safety factor of 1.05. The door handle's lower requirement allows the maximum tested speed (70 mm/s). The Pareto front in Figure 16 (11 non-dominated recipes) shows the full trade-off. Up to τ ≈ 36, strength climbs steeply as infill goes up and speed comes down at 0.8 mm layers, reaching about 42.5 MPa composite strength. Past this knee, any further gain needs 0.2 mm layers, which at least doubles the print time. The brake-pedal recipe sits close to the knee, where extra strength starts to cost a lot of print time.
 
 ### 3.7 Taguchi L15 check and limitations
-The model was also applied to the 15 Taguchi L15 combinations of the base paper. For the two strongest combinations (6: 225 °C, 110 °C, 10 mm/s, 0.2 mm, 100 %; 13: 225 °C, 50 °C, 40 mm/s, 0.2 mm, 100 %), the model predicts about 50.4/63.0 MPa. The paper reports about 37/52 MPa and 35/47 MPa for these prints. The ranking agrees (they are also the paper's two strongest combinations), but the paper's own prints are 25–30 % weaker than anything a model trained on the compiled dataset predicts, with a compressive-to-tensile ratio of about 1.4 instead of 1.25.
+We also ran the model on the 15 Taguchi L15 combinations of the base paper. For the two strongest combinations (6: 225 °C, 110 °C, 10 mm/s, 0.2 mm, 100 %; 13: 225 °C, 50 °C, 40 mm/s, 0.2 mm, 100 %), the model predicts about 50.4/63.0 MPa. The paper reports about 37/52 MPa and 35/47 MPa for these prints. The ranking agrees (these are also the paper's two strongest combinations). The paper's own prints, however, are 25–30 % weaker than anything a model trained on the compiled dataset predicts, and their compressive-to-tensile ratio is about 1.4 instead of 1.25.
 
-**Limitations.**
+The work has the following limitations.
 1. The dataset was compiled from the literature and is nearly deterministic, so the very high R² values should not be read as the accuracy expected on new physical prints.
 2. The paper's L15 measurements are shown only graphically, so a true external validation was not possible; the gap described above suggests a systematic offset between the compiled data and the authors' own prints.
 3. Predictions between tested levels (e.g. 35 mm/s, 96 % infill or a 0.5 mm layer) are interpolations. The robust optimisation and the safety margins reduce, but do not remove, this risk.
@@ -394,13 +386,13 @@ The model was also applied to the 15 Taguchi L15 combinations of the base paper.
 5. The recommended recipes should be confirmed with a few physical ASTM D638/D695 test prints before production use.
 
 ### 3.8 Interactive simulator
-Figure 17 shows the interactive simulator built from the final model. The user sets the five printing parameters and immediately sees:
+Figure 17 shows the interactive simulator built from the final model. When the user sets the five printing parameters, the page shows:
 * the predicted and worst-case tensile and compressive strengths, and the print time;
 * the closest real record in the dataset with its measured strengths;
 * a live Shapley explanation of the prediction;
 * virtual load tests of the brake pedal and the door handle.
 
-The optimiser can also be run live on the Pareto map. Automated tests confirm that the simulator reproduces the Python model to within 2.4 × 10⁻¹¹ MPa on 500 recipes, and that its optimiser reached the optima of Table 12 in all 180 test runs.
+The optimiser can also be run live on the Pareto map. In automated tests the simulator matched the Python model to within 2.4 × 10⁻¹¹ MPa on 500 recipes, and its optimiser reached the optima of Table 12 in all 180 test runs.
 
 ![Simulator](../simulator/simulator_screenshot.png)
 *Figure 17. The interactive simulator ("ABS Print Lab"): machine settings, animated print view with predicted strengths, and a live Shapley explanation of the current recipe.*
@@ -409,11 +401,11 @@ The optimiser can also be run live on the Pareto map. Automated tests confirm th
 
 ## 4. Conclusion
 1. The base paper's ANN models were replicated on its openly published 383-record dataset. The Adam-ANN replication (R² ≈ 0.98) matches the paper's reported performance.
-2. Of nine models evaluated with nine metrics, histogram-based gradient boosting gave the most accurate and most stable predictions: 5-fold CV R² = 0.9995 for both strengths, RMSE of 0.25 MPa (tensile) and 0.31 MPa (compressive), MAPE of about 0.65 % and the smallest cross-validated maximum error (about 1.0–1.3 MPa). Explained variance equal to R² shows that it has no systematic bias, and its fold-to-fold variation is very small.
-3. The comparison of metrics showed why a single metric is not enough: the decision tree has a median error of 0 MPa but a much larger maximum error, and permutation importance overstates the dominant parameter compared with SHAP.
-4. SHAP turns each prediction into exact MPa contributions. Infill density (≈ 62 %), layer height (≈ 23 %) and print speed (≈ 11 %) govern strength, nozzle temperature matters little, and bed temperature does not matter inside the tested window.
+2. Of nine models evaluated with nine metrics, histogram-based gradient boosting gave the most accurate and most stable predictions: 5-fold CV R² = 0.9995 for both strengths, RMSE of 0.25 MPa (tensile) and 0.31 MPa (compressive), MAPE of about 0.65 % and the smallest cross-validated maximum error (about 1.0–1.3 MPa). Its explained variance equals its R², so it has no systematic bias, and it varies very little from fold to fold.
+3. Looking at several metrics mattered. The decision tree has a median error of 0 MPa but a much larger maximum error, and permutation importance overstates the dominant parameter compared with SHAP.
+4. SHAP splits each prediction into exact MPa contributions. Strength is governed by infill density (≈ 62 %), layer height (≈ 23 %) and print speed (≈ 11 %); nozzle temperature matters little and bed temperature not at all inside the tested window.
 5. Robust differential evolution, verified by exhaustive search, identifies the maximum-strength window (0.2 mm layers, ≥ 95 % infill, ≤ 35 mm/s), giving about 50.4 MPa tensile and 63.0 MPa compressive strength. Constrained optimisation gives a brake-pedal recipe (σc ≈ 47 MPa) and a door-handle recipe (σt ≈ 31 MPa) that cut print time by 75 % and 87.5 %.
-6. Future work: physical validation prints with replicates, data at intermediate layer heights (0.4–0.5 mm), and replacing the print-time index with slicer-based estimates of time, energy and cost.
+6. Future work should add physical validation prints with replicates, data at intermediate layer heights (0.4–0.5 mm), and slicer-based estimates of time, energy and cost in place of the print-time index.
 
 ---
 
