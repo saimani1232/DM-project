@@ -1,0 +1,4 @@
+Objective,Method,DE_Generations,Nozzle_Temp_C,Bed_Temp_C,Print_Speed_mm_per_s,Layer_Height_mm,Infill_Density_percent,Predicted_Tensile_MPa,Predicted_Compressive_MPa,Composite_Score_MPa,WorstCase_Tensile_MPa,WorstCase_Compressive_MPa,Objective_Score_WorstCase_MPa,Print_Time_Index,Best_Tested_Combination,Best_Tested_Combination_Score_MPa,Best_Tested_WorstCase_Tensile_MPa,Best_Tested_WorstCase_Compressive_MPa
+Tensile,Robust differential evolution,150,228.0,86.0,35.0,0.2,96.0,50.41,63.04,56.73,50.41,63.02,50.41,138.9,"230, 90, 30, 0.2, 100",50.41,50.41,63.02
+Compressive,Robust differential evolution,150,226.0,73.0,35.0,0.2,96.0,50.41,63.04,56.72,50.41,63.02,63.02,138.9,"230, 70, 30, 0.2, 100",63.02,50.41,63.02
+Composite,Robust differential evolution,150,222.0,94.0,35.0,0.2,96.0,50.41,63.02,56.71,50.41,63.02,56.71,138.9,"230, 90, 30, 0.2, 100",56.71,50.41,63.02

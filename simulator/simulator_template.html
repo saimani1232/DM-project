@@ -1,0 +1,927 @@
+<title>ABS Print Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a print-bay console. Machine controls left, live machine centre, model evidence right;
+   load-test rigs and the optimiser bench below. Single white theme (projector friendly), always light. */
+:root {
+  --bg: #f3f5f8;           /* page: cool white */
+  --panel: #ffffff;
+  --panel-2: #f6f8fa;
+  --line: #d5dbe2;
+  --fg: #141a22;
+  --muted: #5a6574;
+  --hot: #d4681c;          /* heated nozzle / tensile */
+  --steel: #1d73b9;        /* cold steel / compressive */
+  --push-up: #e0245a;      /* SHAP convention: raises the prediction */
+  --push-down: #1a6fd1;    /* SHAP convention: lowers the prediction */
+  --pass: #13865a;
+  --warn: #a77a07;
+  --fail: #c93a37;
+  --filament: #3b4350;     /* printed ABS beads (dark grey filament) */
+  --bed: #c4ccd5;
+  --grid: rgba(90, 101, 116, 0.18);
+  --on-accent: #ffffff;
+  --f-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 10px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 36px); padding-block: 22px 40px; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 4vw, 44px); line-height: 1; }
+h2 { font-size: 24px; line-height: 1.1; }
+h3 { font-size: 18px; }
+.eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.sym { text-transform: none; letter-spacing: 0; font-family: var(--f-body); }   /* keep σ and τ lower-case inside upper-case labels */
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px 28px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+.top p { margin: 6px 0 0; max-width: 70ch; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--f-mono); font-size: 12px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); white-space: nowrap; }
+.chip b { color: var(--hot); font-weight: 500; }
+
+/* ---------- print bay ---------- */
+.bay { display: grid; gap: 18px; grid-template-columns: 300px minmax(0, 1fr) 380px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; box-shadow: 0 1px 2px rgba(20, 26, 34, 0.04); }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 10px; margin-bottom: 12px; }
+
+.ctrl { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.ctrl:last-of-type { border-bottom: 0; }
+.ctrl-top { display: flex; justify-content: space-between; align-items: baseline; }
+.ctrl label { font-weight: 500; font-size: 14px; }
+.ctrl output { font-family: var(--f-display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ctrl output small { font-family: var(--f-body); font-size: 12px; color: var(--muted); margin-left: 2px; }
+input[type="range"] { width: 100%; accent-color: var(--hot); margin: 2px 0; }
+.ticks { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 7px; font-family: var(--f-mono); font-size: 13px; }
+.seg button[aria-pressed="true"] { border-color: var(--hot); color: var(--hot); background: color-mix(in srgb, var(--hot) 12%, var(--panel)); }
+.presets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.presets button, .btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 8px 10px; font-size: 13px; text-align: left; }
+.presets button:hover, .btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--hot); border-color: var(--hot); color: var(--on-accent); font-weight: 600; text-align: center; }
+.btn.primary:disabled { opacity: 0.5; cursor: progress; }
+
+.machine { padding: 0; overflow: hidden; display: grid; }
+.machine canvas { width: 100%; height: 330px; display: block; background: var(--panel-2); }
+.readouts { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--line); }
+.readout { padding: 14px 16px; border-right: 1px solid var(--line); min-width: 0; }
+.readout:last-child { border-right: 0; }
+.big { font-family: var(--f-display); font-size: clamp(34px, 4.2vw, 50px); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.big small { font-size: 0.42em; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.t-col { color: var(--hot); }
+.c-col { color: var(--steel); }
+.sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.timebar { height: 6px; background: var(--panel-2); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.timebar i { display: block; height: 100%; background: var(--hot); width: 30%; transition: width .3s; }
+.nearest { border-top: 1px solid var(--line); padding: 10px 16px; font-size: 13px; color: var(--muted); }
+.nearest b { color: var(--fg); font-weight: 500; }
+
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.toggle button { border: 0; background: transparent; color: var(--muted); padding: 4px 12px; font-size: 13px; }
+.toggle button[aria-pressed="true"] { background: var(--panel-2); color: var(--fg); }
+#shapSvg { width: 100%; height: auto; display: block; transition: opacity .15s; }
+.why { transition: opacity .15s; }
+.stale #shapSvg, .stale .why { opacity: 0.3; }
+.stale .panel-head h2::after { content: " · updating…"; font-family: var(--f-mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+.why { font-size: 13.5px; margin: 10px 0 0; }
+.note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+/* ---------- load test rigs ---------- */
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 8px 20px; }
+.section-head p { margin: 4px 0 0; color: var(--muted); max-width: 75ch; }
+.rigs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.rig { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; }
+.rig-main { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.rig svg.part { width: 100%; height: 210px; display: block; background: var(--panel-2); border-radius: 8px; }
+.rig-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kv { background: var(--panel-2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.kv span { display: block; font-size: 11.5px; color: var(--muted); }
+.kv b { font-family: var(--f-display); font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.verdict { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.verdict.pass { color: var(--pass); } .verdict.warn { color: var(--warn); } .verdict.fail { color: var(--fail); }
+.rig-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.gauge { width: 100%; height: 100%; min-height: 300px; display: block; }
+.ticker { font-family: var(--f-mono); font-size: 12.5px; min-height: 1.5em; color: var(--muted); }
+
+/* ---------- optimiser bench ---------- */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.bench canvas { width: 100%; height: 420px; display: block; cursor: crosshair; background: var(--panel-2); border-radius: 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+select { font: inherit; width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); }
+.opt-out { display: grid; gap: 8px; margin-top: 12px; }
+.recipe { font-family: var(--f-mono); font-size: 13px; background: var(--panel-2); border-radius: 8px; padding: 10px; line-height: 1.7; }
+.genbar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.genbar i { display: block; height: 100%; width: 0; background: var(--hot); }
+
+footer { border-top: 1px solid var(--line); padding-top: 14px; font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
+footer p { margin: 0; max-width: 120ch; }
+
+@media (max-width: 1240px) {
+  .bay { grid-template-columns: 300px minmax(0, 1fr); }
+  .explain { grid-column: 1 / -1; }
+}
+@media (max-width: 980px) {
+  .rigs, .bench { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .bay { grid-template-columns: minmax(0, 1fr); }
+  .readouts { grid-template-columns: 1fr 1fr; }
+  .readout:nth-child(2) { border-right: 0; }
+  .readout:last-child { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+  .rig { grid-template-columns: minmax(0, 1fr); }
+  .gauge { min-height: 0; height: 230px; }
+  .machine canvas { height: 260px; }
+  .bench canvas { height: 320px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Digital manufacturing · FDM / MEX · ABS</div>
+      <h1>ABS Print Lab</h1>
+      <p>Set the five printing parameters and watch the trained model respond: predicted strengths, the reason behind every MPa, a virtual load test of the two automotive parts, and the optimiser searching the design space live.</p>
+    </div>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <section class="bay" aria-label="Print bay">
+    <div class="panel console">
+      <div class="panel-head"><h2>Machine settings</h2><span class="eyebrow">input</span></div>
+      <div class="ctrl">
+        <div class="ctrl-top"><label for="nozzle">Nozzle temperature</label><output id="nozzleOut"></output></div>
+        <input type="range" id="nozzle" min="200" max="250" step="1">
+        <div class="ticks"><span>200</span><span>tested every 10 °C</span><span>250</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-top"><label for="bed">Bed temperature</label><output id="bedOut"></output></div>
+        <input type="range" id="bed" min="50" max="110" step="1">
+        <div class="ticks"><span>50</span><span>70 · 90</span><span>110</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-top"><label for="speed">Print speed</label><output id="speedOut"></output></div>
+        <input type="range" id="speed" min="10" max="70" step="1">
+        <div class="ticks"><span>10</span><span>30 · 50</span><span>70</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-top"><span id="layerLabel" style="font-weight:500;font-size:14px">Layer height</span><output id="layerOut"></output></div>
+        <div class="seg" role="group" aria-labelledby="layerLabel">
+          <button type="button" id="layer02" data-layer="0.2">0.2 mm · fine</button>
+          <button type="button" id="layer08" data-layer="0.8">0.8 mm · coarse</button>
+        </div>
+        <div class="ticks"><span>only the two layer heights in the dataset</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-top"><label for="infill">Infill density</label><output id="infillOut"></output></div>
+        <input type="range" id="infill" min="20" max="100" step="1">
+        <div class="ticks"><span>20</span><span>40 · 60 · 80</span><span>100</span></div>
+      </div>
+      <div class="eyebrow" style="margin-top:12px">Load a recipe</div>
+      <div class="presets" id="presets"></div>
+    </div>
+
+    <div class="panel machine">
+      <canvas id="printCanvas" aria-label="Animated side view of the specimen being printed with the current settings" role="img"></canvas>
+      <div class="readouts">
+        <div class="readout">
+          <div class="eyebrow">Tensile <span class="sym">σt</span></div>
+          <div class="big t-col" id="tOut">–</div>
+          <div class="sub" id="tWc"></div>
+        </div>
+        <div class="readout">
+          <div class="eyebrow">Compressive <span class="sym">σc</span></div>
+          <div class="big c-col" id="cOut">–</div>
+          <div class="sub" id="cWc"></div>
+        </div>
+        <div class="readout">
+          <div class="eyebrow">Print-time index <span class="sym">τ</span></div>
+          <div class="big" id="tauOut">–</div>
+          <div class="timebar" aria-hidden="true"><i id="tauBar"></i></div>
+          <div class="sub" id="tauSub"></div>
+        </div>
+      </div>
+      <div class="nearest" id="nearest"></div>
+    </div>
+
+    <div class="panel explain">
+      <div class="panel-head">
+        <h2>Why this strength?</h2>
+        <div class="toggle" role="group" aria-label="Strength to explain">
+          <button type="button" id="expT" aria-pressed="true">Tensile</button>
+          <button type="button" id="expC" aria-pressed="false">Compressive</button>
+        </div>
+      </div>
+      <svg id="shapSvg" viewBox="0 0 360 300" role="img" aria-label="Shapley waterfall of the current prediction"></svg>
+      <p class="why" id="whyText"></p>
+      <p class="note">Shapley values, computed live and exactly over all 32 parameter coalitions against the 383 dataset records. Red pushes the prediction up, blue pulls it down. The bars add up exactly to the prediction. Values can differ by a few tenths of an MPa from the report's TreeExplainer figures, which average over the trees' own data paths instead of the dataset.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Case studies · Munshi et al. §3.3</div>
+        <h2>Virtual load test</h2>
+        <p>The current recipe is printed into both parts and loaded until it fails. A part passes when its worst-case strength under ±5 units of process drift clears the requirement plus a model-error margin (2 × cross-validated RMSE).</p>
+      </div>
+    </div>
+    <div class="rigs" style="margin-top:14px">
+      <div class="rig" id="rig-pedal">
+        <div class="rig-main">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <h3>Brake pedal · compression</h3><span class="verdict" id="pedalVerdict">–</span>
+          </div>
+          <svg class="part" id="pedalSvg" viewBox="0 0 400 210" role="img" aria-label="Brake pedal under compressive foot load"></svg>
+          <div class="rig-meta">
+            <div class="kv"><span>Requirement</span><b id="pedalReq"></b></div>
+            <div class="kv"><span>Worst-case σc</span><b id="pedalStr"></b></div>
+            <div class="kv"><span>Safety factor</span><b id="pedalSf"></b></div>
+          </div>
+          <div class="ticker" id="pedalTicker" aria-live="polite"></div>
+          <div class="rig-actions">
+            <button type="button" class="btn primary" id="pedalRun">Run load test</button>
+            <button type="button" class="btn" data-preset="pedal">Load optimised pedal recipe</button>
+          </div>
+        </div>
+        <svg class="gauge" id="pedalGauge" viewBox="0 0 150 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Stress gauge"></svg>
+      </div>
+      <div class="rig" id="rig-handle">
+        <div class="rig-main">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <h3>Door handle · tension</h3><span class="verdict" id="handleVerdict">–</span>
+          </div>
+          <svg class="part" id="handleSvg" viewBox="0 0 400 210" role="img" aria-label="Door handle under tensile pull"></svg>
+          <div class="rig-meta">
+            <div class="kv"><span>Requirement</span><b id="handleReq"></b></div>
+            <div class="kv"><span>Worst-case σt</span><b id="handleStr"></b></div>
+            <div class="kv"><span>Safety factor</span><b id="handleSf"></b></div>
+          </div>
+          <div class="ticker" id="handleTicker" aria-live="polite"></div>
+          <div class="rig-actions">
+            <button type="button" class="btn primary" id="handleRun">Run load test</button>
+            <button type="button" class="btn" data-preset="handle">Load optimised handle recipe</button>
+          </div>
+        </div>
+        <svg class="gauge" id="handleGauge" viewBox="0 0 150 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Stress gauge"></svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Review 1 · feedback #3</div>
+        <h2>Optimiser bench</h2>
+        <p>Every grey dot is a recipe in the tested window, plotted by worst-case strength against print time. The red line is the Pareto front. Run differential evolution and watch its population converge, or click any dot to print that recipe.</p>
+      </div>
+    </div>
+    <div class="bench" style="margin-top:14px">
+      <div>
+        <canvas id="mapCanvas" aria-label="Design space: worst-case composite strength versus print-time index" role="img"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--muted);opacity:.55"></i>0.2 mm recipes</span>
+          <span><i style="background:var(--muted);opacity:.25"></i>0.8 mm recipes</span>
+          <span><i style="background:var(--fail)"></i>Pareto front</span>
+          <span><i style="background:var(--hot)"></i>Optimiser population</span>
+          <span><i style="border:2px solid var(--fg);background:transparent"></i>Current recipe</span>
+        </div>
+      </div>
+      <div>
+        <label for="objective" class="eyebrow">Objective</label>
+        <select id="objective" style="margin-top:6px">
+          <option value="strength">Maximise strength (robust)</option>
+          <option value="pedal">Brake pedal: fastest with σc ≥ 45 MPa</option>
+          <option value="handle">Door handle: fastest with σt ≥ 30 MPa</option>
+        </select>
+        <div class="opt-out">
+          <button type="button" class="btn primary" id="optRun">Run differential evolution</button>
+          <div class="genbar" aria-hidden="true"><i id="genBar"></i></div>
+          <div class="ticker" id="optStatus" aria-live="polite">Two populations of 24 recipes (one per layer height) evolve for 45 generations. Each recipe is scored by its worst case under ±5 units of process drift.</div>
+          <div class="recipe" id="optRecipe">Press run to start the search.</div>
+          <button type="button" class="btn" id="optLoad" disabled>Load result into printer</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p id="footModel"></p>
+    <p>Predictions between the tested levels (e.g. 35 mm/s or 96 % infill) are interpolations by the model. The robust worst case and the safety margin guard against that, but recipes should be confirmed with ASTM D638 / D695 test prints. The print-time index is relative: deposited volume (30 % shell plus the infilled core) divided by speed × layer height.</p>
+    <p>Reference: G.A. Munshi, V.M. Kulkarni, S. Yargatti, Next Materials 10 (2026) 101420. Course project, Introduction to Digital Manufacturing.</p>
+  </footer>
+</div>
+
+<script>
+/*__MODEL_RUNTIME__*/
+</script>
+<script>
+const MODEL_DATA = /*__MODEL_DATA__*/null;
+(function () {
+  'use strict';
+  const D = MODEL_DATA;
+  const M = ABSModel.buildModel(D);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmt = (v, d = 1) => Number(v).toFixed(d);
+  const NAMES = ['Nozzle', 'Bed', 'Speed', 'Layer', 'Infill'];
+  const UNITS = ['°C', '°C', 'mm/s', 'mm', '%'];
+  const composite = (t, c) => 0.5 * t + 0.5 * c;
+
+  const state = { x: D.presets.optimum.x.slice(), target: 0, pred: [0, 0], wc: [0, 0], tau: 0 };
+
+  // ---------- header chips ----------
+  $('chips').innerHTML =
+    `<span class="chip">model <b>${D.modelName}</b></span>` +
+    `<span class="chip">5-fold CV R² <b>${D.cvR2.toFixed(4)}</b></span>` +
+    `<span class="chip">trained on <b>${D.nSamples}</b> records</span>`;
+  $('footModel').textContent =
+    `The page runs the project's ${D.modelName} model exactly as trained in Python (${D.targets[0].roots.length} boosted trees per strength), ` +
+    `with cross-validated RMSE ${D.cvRmse[0].toFixed(2)} MPa (tensile) and ${D.cvRmse[1].toFixed(2)} MPa (compressive). Everything is computed in your browser.`;
+
+  // ---------- controls ----------
+  const sliders = { 0: $('nozzle'), 1: $('bed'), 2: $('speed'), 4: $('infill') };
+  const outs = { 0: $('nozzleOut'), 1: $('bedOut'), 2: $('speedOut'), 3: $('layerOut'), 4: $('infillOut') };
+  Object.entries(sliders).forEach(([i, el]) => el.addEventListener('input', () => { state.x[+i] = +el.value; update(); }));
+  ['layer02', 'layer08'].forEach(id => $(id).addEventListener('click', e => { state.x[3] = +e.currentTarget.dataset.layer; update(); }));
+
+  const presetBox = $('presets');
+  Object.entries(D.presets).forEach(([key, p]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = p.label; b.dataset.preset = key;
+    presetBox.appendChild(b);
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-preset]');
+    if (b) setRecipe(D.presets[b.dataset.preset].x);
+  });
+
+  function setRecipe(x) {
+    state.x = x.slice();
+    update();
+  }
+
+  // ---------- nearest measured record ----------
+  function nearest(x) {
+    let best = 0, bd = Infinity;
+    D.background.forEach((b, k) => {
+      let d = 0;
+      for (let i = 0; i < 5; i++) { const s = (x[i] - b[i]) / (D.bounds[i][1] - D.bounds[i][0]); d += s * s; }
+      if (d < bd) { bd = d; best = k; }
+    });
+    return { rec: D.background[best], meas: D.measured[best], exact: bd < 1e-12 };
+  }
+
+  // ---------- main update ----------
+  let shapTimer = null, shapCache = null;
+  function update() {
+    const x = state.x;
+    Object.entries(sliders).forEach(([i, el]) => { el.value = x[+i]; });
+    outs[0].innerHTML = `${fmt(x[0], 0)}<small>°C</small>`;
+    outs[1].innerHTML = `${fmt(x[1], 0)}<small>°C</small>`;
+    outs[2].innerHTML = `${fmt(x[2], 0)}<small>mm/s</small>`;
+    outs[3].innerHTML = `${x[3]}<small>mm</small>`;
+    outs[4].innerHTML = `${fmt(x[4], 0)}<small>%</small>`;
+    $('layer02').setAttribute('aria-pressed', String(x[3] === 0.2));
+    $('layer08').setAttribute('aria-pressed', String(x[3] === 0.8));
+
+    state.pred = M.predict(x);
+    state.wc = M.worstCase(x);
+    state.tau = M.printTime(x[2], x[3], x[4]);
+    $('tOut').innerHTML = `${fmt(state.pred[0], 2)}<small>MPa</small>`;
+    $('cOut').innerHTML = `${fmt(state.pred[1], 2)}<small>MPa</small>`;
+    $('tWc').textContent = `worst case within ±5: ${fmt(state.wc[0], 2)} MPa`;
+    $('cWc').textContent = `worst case within ±5: ${fmt(state.wc[1], 2)} MPa`;
+    $('tauOut').textContent = fmt(state.tau, 1);
+    const ratio = state.tau / D.maxStrengthTau;
+    $('tauBar').style.width = `${Math.min(100, ratio / 3.6 * 100)}%`;
+    $('tauSub').textContent = Math.abs(ratio - 1) < 0.005
+      ? 'same print time as the max-strength recipe'
+      : ratio < 1 ? `${fmt((1 - ratio) * 100, 0)} % faster than the max-strength recipe`
+                  : `${fmt(ratio, 2)} × the time of the max-strength recipe`;
+
+    const n = nearest(x);
+    $('nearest').innerHTML = n.exact
+      ? `This exact recipe is in the dataset. <b>Measured: ${n.meas[0]} / ${n.meas[1]} MPa</b> (tensile / compressive).`
+      : `Closest tested record: <b>${n.rec.map((v, i) => v + ' ' + UNITS[i]).join(', ')}</b>, measured <b>${n.meas[0]} / ${n.meas[1]} MPa</b>.`;
+
+    updateRigs();
+    drawMap();
+    shapCache = null;                       // recipe changed: the cached explanation is stale
+    document.querySelector('.explain').classList.add('stale');
+    clearTimeout(shapTimer);
+    shapTimer = setTimeout(() => drawShap(false), 90);
+    if (reduceMotion) requestAnimationFrame(drawPrint);
+  }
+
+  // ---------- Shapley waterfall ----------
+  ['expT', 'expC'].forEach((id, k) => $(id).addEventListener('click', () => {
+    state.target = k;
+    $('expT').setAttribute('aria-pressed', String(k === 0));
+    $('expC').setAttribute('aria-pressed', String(k === 1));
+    drawShap(true);
+  }));
+
+  function drawShap(useCache) {
+    if (!useCache || !shapCache) shapCache = M.shapley(state.x);
+    const s = shapCache, t = state.target;
+    const phi = s.phi[t], base = s.base[t], pred = s.pred[t];
+    const order = [0, 1, 2, 3, 4].sort((a, b) => Math.abs(phi[b]) - Math.abs(phi[a]));
+    const W = 360, rowH = 34, top = 10, labelW = 132, x0 = labelW + 6, x1 = W - 12;
+    let lo = Math.min(0, base, pred), hi = Math.max(base, pred);
+    let cum = base;
+    order.forEach(i => { cum += phi[i]; lo = Math.min(lo, cum); hi = Math.max(hi, cum); });
+    hi = Math.max(10, Math.ceil(hi / 10) * 10); lo = Math.min(0, Math.floor(lo / 10) * 10);
+    const sx = v => x0 + (v - lo) / (hi - lo) * (x1 - x0);
+    const H = top + rowH * 7 + 26;
+    const svg = $('shapSvg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const col = t === 0 ? 'var(--hot)' : 'var(--steel)';
+    let out = '';
+    for (let v = lo; v <= hi; v += 10) {
+      out += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${top}" y2="${top + rowH * 7}" stroke="var(--grid)"/>` +
+             `<text x="${sx(v)}" y="${top + rowH * 7 + 16}" fill="var(--muted)" font-size="10.5" text-anchor="middle" font-family="IBM Plex Mono, monospace">${v}</text>`;
+    }
+    const row = (k, label, value, a, b, fill, valueText) => {
+      const y = top + k * rowH;
+      const xa = sx(Math.min(a, b)), xb = sx(Math.max(a, b));
+      out += `<text x="${labelW}" y="${y + 21}" fill="var(--fg)" font-size="12.5" text-anchor="end" font-family="IBM Plex Sans, sans-serif">${label}<tspan fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11"> ${value}</tspan></text>`;
+      out += `<rect x="${xa}" y="${y + 7}" width="${Math.max(2, xb - xa)}" height="${rowH - 14}" rx="3" fill="${fill}"/>`;
+      // Value label: outside the bar on its leading side, else on the other side, else inside
+      const need = valueText.length * 7.4 + 8;
+      let lx, la, lf = 'var(--fg)';
+      const rightFits = xb + need <= W - 2, leftFits = xa - need >= x0 - 2;
+      if (b >= a ? rightFits : !leftFits && rightFits) { lx = xb + 5; la = 'start'; }
+      else if (leftFits) { lx = xa - 5; la = 'end'; }
+      else { lx = xb - 5; la = 'end'; lf = 'var(--bg)'; }
+      out += `<text x="${lx}" y="${y + 21}" font-size="12" font-family="IBM Plex Mono, monospace" text-anchor="${la}" fill="${lf}">${valueText}</text>`;
+    };
+    row(0, 'Dataset average', '', lo, base, 'var(--muted)', `${base.toFixed(2)}`);
+    cum = base;
+    order.forEach((i, k) => {
+      const a = cum; cum += phi[i];
+      const val = i === 3 ? state.x[i] + ' mm' : fmt(state.x[i], 0) + ' ' + UNITS[i];
+      row(k + 1, NAMES[i], val, a, cum, phi[i] >= 0 ? 'var(--push-up)' : 'var(--push-down)',
+          Math.abs(phi[i]) < 0.005 ? '0.00' : (phi[i] > 0 ? '+' : '') + phi[i].toFixed(2));
+    });
+    row(6, 'Prediction', '', lo, pred, col, `${pred.toFixed(2)} MPa`);
+    svg.innerHTML = out;
+
+    const top2 = order.slice(0, 2).map(i => {
+      const val = i === 3 ? state.x[i] + ' mm' : fmt(state.x[i], 0) + ' ' + UNITS[i];
+      return `${NAMES[i].toLowerCase()} at ${val} ${phi[i] >= 0 ? 'adds' : 'removes'} ${Math.abs(phi[i]).toFixed(1)} MPa`;
+    });
+    document.querySelector('.explain').classList.remove('stale');
+    $('whyText').innerHTML = `Starting from the dataset average of ${base.toFixed(1)} MPa, ${top2[0]} and ${top2[1]}. ` +
+      `The ${t === 0 ? 'tensile' : 'compressive'} prediction ends at <b>${pred.toFixed(2)} MPa</b>.`;
+  }
+
+  // ---------- print animation ----------
+  const pc = $('printCanvas'), pctx = pc.getContext('2d');
+  let printStart = performance.now(), lastSig = '';
+  function fitCanvas(c) {
+    const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return { w: r.width, h: r.height, dpr };
+  }
+  function lerpColor(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255];
+    const A = ch(pa), B = ch(pb);
+    return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+  }
+  function drawPrint(now) {
+    const { w, h, dpr } = fitCanvas(pc);
+    const g = pctx;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const x = state.x;
+    const sig = x.join(',');
+    if (sig !== lastSig) { lastSig = sig; printStart = now; }
+
+    const inset = w > 560 ? 150 : 0;
+    const partL = 24, partR = w - inset - 30, partW = partR - partL;
+    const bedY = h - (w < 520 ? 56 : 46), partH = Math.min(150, h * 0.42);
+    const nLayers = Math.round(4 / x[3]);
+    const lh = partH / nLayers;
+    const beadW = Math.max(6, lh * 1.45);
+    const cycle = Math.max(1.6, state.tau / 11);          // seconds per specimen, proportional to tau
+    const t = reduceMotion ? cycle * 0.999 : ((now - printStart) / 1000) % (cycle + 0.8);
+    const progress = Math.min(1, t / cycle) * nLayers;
+    const doneLayers = Math.floor(progress);
+    const frac = progress - doneLayers;
+    const fil = css('--filament'), hot = css('--hot');
+
+    // bed
+    const bedHeat = (x[1] - 50) / 60;
+    g.fillStyle = css('--bed');
+    g.fillRect(12, bedY, w - inset - 24, 12);
+    const grad = g.createLinearGradient(0, bedY - 18, 0, bedY);
+    grad.addColorStop(0, 'rgba(240,96,93,0)');
+    grad.addColorStop(1, `rgba(240,96,93,${0.10 + 0.35 * bedHeat})`);
+    g.fillStyle = grad;
+    g.fillRect(12, bedY - 18, w - inset - 24, 18);
+    g.fillStyle = css('--muted');
+    g.font = '11px "IBM Plex Mono", monospace';
+    const narrow = w < 520;
+    g.fillText(`heated bed ${fmt(x[1], 0)} °C`, 14, bedY + 28);
+    if (narrow) g.fillText(`${nLayers} layers × ${x[3]} mm · ${fmt(x[4], 0)} % infill`, 14, bedY + 42);
+    else {
+      g.textAlign = 'right';
+      g.fillText(`${nLayers} layers × ${x[3]} mm · ${fmt(x[4], 0)} % infill`, w - inset - 14, bedY + 28);
+      g.textAlign = 'left';
+    }
+
+    // beads
+    const gap = beadW * 100 / Math.max(1, x[4]);
+    function layerBeads(k) {
+      const xs = [];
+      const solid = k === 0 || k === nLayers - 1;
+      for (let s = 0; s < 2; s++) { xs.push(partL + s * beadW); xs.push(partR - (s + 1) * beadW); }
+      const inL = partL + 2 * beadW, inR = partR - 2 * beadW;
+      if (solid) for (let p = inL; p <= inR - beadW + 0.01; p += beadW) xs.push(p);
+      else for (let p = inL + ((k % 2) * gap / 2) % gap; p <= inR - beadW + 0.01; p += gap) xs.push(p);
+      return xs.sort((a, b) => a - b);
+    }
+    const headX = partL + frac * partW;
+    for (let k = 0; k <= Math.min(doneLayers, nLayers - 1); k++) {
+      const y = bedY - (k + 1) * lh;
+      const xs = layerBeads(k);
+      xs.forEach(px => {
+        if (k === doneLayers && px > headX) return;
+        const fresh = k === doneLayers && headX - px < beadW * 3;
+        g.fillStyle = fresh ? hot : fil;
+        g.globalAlpha = k === doneLayers ? 0.95 : 0.88;
+        g.beginPath();
+        g.ellipse(px + beadW / 2, y + lh / 2, beadW / 2 + 0.3, lh / 2, 0, 0, Math.PI * 2);
+        g.fill();
+      });
+    }
+    g.globalAlpha = 1;
+
+    // print head
+    const printing = progress < nLayers;
+    const hx = printing ? headX : partR + 12;
+    const hy = bedY - (Math.min(doneLayers, nLayers - 1) + 1) * lh;
+    const nozzleHeat = (x[0] - 200) / 50;
+    const tipColor = lerpColor('#9a3412', '#ff9f1a', nozzleHeat);
+    const glow = g.createRadialGradient(hx, hy, 0, hx, hy, 18 + 14 * nozzleHeat);
+    glow.addColorStop(0, tipColor); glow.addColorStop(1, 'rgba(255,160,60,0)');
+    g.fillStyle = glow;
+    g.beginPath(); g.arc(hx, hy, 18 + 14 * nozzleHeat, 0, Math.PI * 2); g.fill();
+    g.fillStyle = css('--muted');
+    g.fillRect(hx - 18, hy - 64, 36, 34);
+    g.fillStyle = css('--panel');
+    g.fillRect(hx - 12, hy - 58, 24, 6);
+    g.fillStyle = tipColor;
+    g.beginPath(); g.moveTo(hx - 9, hy - 30); g.lineTo(hx + 9, hy - 30); g.lineTo(hx, hy - 2); g.closePath(); g.fill();
+    // head labels: to the right of the head, or to its left when the head is near the right edge
+    const labelLeft = hx + 22 + 64 > w - inset - 8;
+    g.textAlign = labelLeft ? 'right' : 'left';
+    const lx = labelLeft ? hx - 24 : hx + 22;
+    g.fillStyle = css('--fg');
+    g.font = '600 12px "IBM Plex Mono", monospace';
+    g.fillText(`${fmt(x[0], 0)} °C`, lx, hy - 46);
+    g.fillStyle = css('--muted');
+    g.font = '11px "IBM Plex Mono", monospace';
+    g.fillText(`${fmt(x[2], 0)} mm/s`, lx, hy - 32);
+    g.textAlign = 'left';
+
+    // header text
+    g.fillStyle = css('--muted');
+    g.font = '11px "IBM Plex Mono", monospace';
+    g.fillText(narrow ? 'SIDE VIEW · 4 mm SPECIMEN' : 'SIDE VIEW · ASTM SPECIMEN, 4 mm THICK', 14, 20);
+    const pct = Math.min(100, progress / nLayers * 100);
+    g.textAlign = 'right';
+    g.fillText(printing ? `printing ${pct.toFixed(0)} %` : 'specimen complete', w - inset - 14, 20);
+    g.textAlign = 'left';
+
+    // top view inset of the infill
+    if (inset) {
+      const s = 108, ox = w - inset + 14, oy = 40;
+      g.fillStyle = css('--muted');
+      g.fillText('TOP VIEW · INFILL', ox, 20);
+      g.strokeStyle = fil; g.lineWidth = 3;
+      g.strokeRect(ox, oy, s, s);
+      g.lineWidth = 1.6; g.globalAlpha = 0.85;
+      const step = Math.max(3, 9 * 100 / Math.max(1, x[4]));
+      g.save(); g.beginPath(); g.rect(ox + 3, oy + 3, s - 6, s - 6); g.clip();
+      for (let d = -s; d < 2 * s; d += step) {
+        g.beginPath(); g.moveTo(ox + d, oy); g.lineTo(ox + d + s, oy + s); g.stroke();
+        g.beginPath(); g.moveTo(ox + d + s, oy); g.lineTo(ox + d, oy + s); g.stroke();
+      }
+      g.restore(); g.globalAlpha = 1;
+      g.fillStyle = css('--fg');
+      g.font = '600 13px "IBM Plex Mono", monospace';
+      g.fillText(`${fmt(x[4], 0)} % solid`, ox, oy + s + 22);
+      g.fillStyle = css('--muted');
+      g.font = '11px "IBM Plex Mono", monospace';
+      g.fillText(`demo cycle ${cycle.toFixed(1)} s`, ox, oy + s + 40);
+    }
+    if (!reduceMotion) requestAnimationFrame(drawPrint);
+  }
+
+  // ---------- load-test rigs ----------
+  const rigs = {
+    pedal: { svg: $('pedalSvg'), gauge: $('pedalGauge'), case: D.cases.pedal, sym: 'σc', anim: null },
+    handle: { svg: $('handleSvg'), gauge: $('handleGauge'), case: D.cases.handle, sym: 'σt', anim: null },
+  };
+  const GMAX = 70;
+
+  function partSvg(key, crack, loadFrac) {
+    const fill = 'var(--filament)', stroke = 'var(--muted)';
+    if (key === 'pedal') {
+      const push = loadFrac * 10;
+      return `
+        <rect x="30" y="182" width="340" height="10" rx="2" fill="var(--bed)"/>
+        <path d="M70 178 L70 150 Q70 138 82 136 L250 104 Q262 102 266 112 L272 128 L96 166 Q88 168 88 178 Z" fill="${fill}" opacity=".92"/>
+        <circle cx="74" cy="168" r="9" fill="var(--panel)" stroke="${stroke}" stroke-width="2"/>
+        <rect x="226" y="${86 + push * 0.4}" width="96" height="22" rx="6" transform="rotate(-12 274 ${97 + push * 0.4})" fill="${fill}"/>
+        <g transform="translate(0 ${push})">
+          <path d="M276 18 L276 58" stroke="var(--steel)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M264 52 L276 72 L288 52 Z" fill="var(--steel)"/>
+          <text x="292" y="38" font-size="12" fill="var(--steel)" font-family="IBM Plex Mono, monospace">foot load</text>
+        </g>
+        <path d="M190 118 L182 132 L194 140 L186 154" fill="none" stroke="var(--fail)" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="60" stroke-dashoffset="${crack ? 0 : 60}" style="transition:stroke-dashoffset .5s"/>
+        <text x="30" y="24" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono, monospace">PEDAL ARM · COMPRESSIVE LOADING</text>`;
+    }
+    const pull = loadFrac * 8;
+    return `
+      <rect x="40" y="60" width="18" height="110" rx="3" fill="var(--bed)"/>
+      <rect x="342" y="60" width="18" height="110" rx="3" fill="var(--bed)"/>
+      <path d="M58 92 L96 92 Q110 92 116 ${104 + pull} L130 ${132 + pull} Q136 ${144 + pull} 150 ${144 + pull} L250 ${144 + pull}
+               Q264 ${144 + pull} 270 ${132 + pull} L284 ${104 + pull} Q290 92 304 92 L342 92 L342 112 L310 112
+               Q302 112 298 ${122 + pull} L286 ${150 + pull} Q278 ${166 + pull} 260 ${166 + pull} L140 ${166 + pull}
+               Q122 ${166 + pull} 114 ${150 + pull} L102 ${122 + pull} Q98 112 90 112 L58 112 Z" fill="${fill}" opacity=".92"/>
+      <g transform="translate(0 ${pull})">
+        <path d="M200 170 L200 186" stroke="var(--hot)" stroke-width="5" stroke-linecap="round"/>
+        <path d="M188 182 L200 198 L212 182 Z" fill="var(--hot)"/>
+        <text x="216" y="192" font-size="12" fill="var(--hot)" font-family="IBM Plex Mono, monospace">pull</text>
+      </g>
+      <path d="M110 ${98 + pull} L118 ${108 + pull} L108 ${116 + pull} L116 ${126 + pull}" fill="none" stroke="var(--fail)" stroke-width="3"
+        stroke-linecap="round" stroke-dasharray="50" stroke-dashoffset="${crack ? 0 : 50}" style="transition:stroke-dashoffset .5s"/>
+      <text x="30" y="24" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono, monospace">GRIP · TENSILE LOADING</text>`;
+  }
+
+  function gaugeSvg(r, stress) {
+    const c = r.case, req = c.requirement, need = req + c.margin;
+    const str = r === rigs.pedal ? state.wc[1] : state.wc[0];
+    const y = v => 300 - Math.max(0, Math.min(GMAX, v)) / GMAX * 280;
+    const col = r === rigs.pedal ? 'var(--steel)' : 'var(--hot)';
+    // keep the "fails" label clear of the "need" label when the two values are close
+    const gapPx = y(str) - y(req);
+    const labelY = Math.abs(gapPx) < 24 ? y(req) + (gapPx <= 0 ? -24 : 24) : y(str);
+    let ticks = '';
+    for (let v = 0; v <= GMAX; v += 10)
+      ticks += `<line x1="38" x2="46" y1="${y(v)}" y2="${y(v)}" stroke="var(--muted)"/><text x="32" y="${y(v) + 4}" font-size="10" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${v}</text>`;
+    return `
+      <rect x="50" y="20" width="34" height="280" rx="6" fill="var(--panel-2)" stroke="var(--line)"/>
+      <rect x="50" y="${y(need)}" width="34" height="${y(req) - y(need)}" fill="var(--warn)" opacity=".25"/>
+      <rect x="53" y="${y(stress)}" width="28" height="${300 - y(stress)}" rx="4" fill="${col}" opacity=".85"/>
+      ${ticks}
+      <line x1="46" x2="96" y1="${y(req)}" y2="${y(req)}" stroke="var(--fg)" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="98" y="${y(req) + 4}" font-size="11" fill="var(--fg)" font-family="IBM Plex Mono, monospace">need ${req}</text>
+      <path d="M86 ${y(str)} L96 ${y(str) - 6} L96 ${y(str) + 6} Z" fill="${col}"/>
+      <text x="98" y="${labelY - 8}" font-size="11" fill="${col}" font-family="IBM Plex Mono, monospace">fails</text>
+      <text x="98" y="${labelY + 6}" font-size="11" fill="${col}" font-family="IBM Plex Mono, monospace">${str.toFixed(1)}</text>
+      <text x="67" y="14" font-size="10.5" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace">MPa</text>`;
+  }
+
+  function verdictFor(r) {
+    const c = r.case, s = r === rigs.pedal ? state.wc[1] : state.wc[0];
+    if (s >= c.requirement + c.margin) return ['pass', 'PASS'];
+    if (s >= c.requirement) return ['warn', 'WITHIN MARGIN'];
+    return ['fail', 'FAIL'];
+  }
+
+  function updateRigs() {
+    for (const [key, r] of Object.entries(rigs)) {
+      if (r.anim) cancelAnimationFrame(r.anim), r.anim = null;
+      const s = key === 'pedal' ? state.wc[1] : state.wc[0];
+      r.svg.innerHTML = partSvg(key, false, 0);
+      r.gauge.innerHTML = gaugeSvg(r, 0);
+      const [cls, text] = verdictFor(r);
+      const v = $(key + 'Verdict');
+      v.className = 'verdict ' + cls; v.textContent = text;
+      $(key + 'Req').textContent = `${r.sym} ≥ ${r.case.requirement}`;
+      $(key + 'Str').textContent = `${s.toFixed(1)} MPa`;
+      $(key + 'Sf').textContent = (s / r.case.requirement).toFixed(2);
+      $(key + 'Ticker').textContent = `Required with model margin: ${(r.case.requirement + r.case.margin).toFixed(2)} MPa.`;
+    }
+  }
+
+  function runTest(key) {
+    const r = rigs[key];
+    if (r.anim) { cancelAnimationFrame(r.anim); r.anim = null; }   // restart cleanly if pressed again
+    const strength = key === 'pedal' ? state.wc[1] : state.wc[0];
+    const req = r.case.requirement;
+    const dur = reduceMotion ? 1 : 2600;
+    const t0 = performance.now();
+    let metFlag = false;
+    const tick = $(key + 'Ticker');
+    tick.textContent = 'Loading…';
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      const stress = strength * (1 - Math.pow(1 - p, 2));
+      r.gauge.innerHTML = gaugeSvg(r, stress);
+      r.svg.innerHTML = partSvg(key, p >= 1, p);
+      if (!metFlag && stress >= req) { metFlag = true; tick.textContent = `Requirement of ${req} MPa reached and held. Increasing load…`; }
+      if (p < 1) { r.anim = requestAnimationFrame(step); return; }
+      r.anim = null;
+      tick.textContent = strength >= req
+        ? `Failed at ${strength.toFixed(1)} MPa, ${((strength / req - 1) * 100).toFixed(0)} % above the ${req} MPa requirement.`
+        : `Failed at ${strength.toFixed(1)} MPa, before reaching the ${req} MPa requirement.`;
+    };
+    r.anim = requestAnimationFrame(step);
+  }
+  $('pedalRun').addEventListener('click', () => runTest('pedal'));
+  $('handleRun').addEventListener('click', () => runTest('handle'));
+
+  // ---------- optimiser bench ----------
+  const mc = $('mapCanvas'), mctx = mc.getContext('2d');
+  const TAU_MIN = 6, TAU_MAX = 600, S_MAX = 60;
+  let mapGeom = null, deView = null;
+  function drawMap() {
+    const { w, h, dpr } = fitCanvas(mc);
+    const g = mctx;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const L = 52, R = w - 16, T = 16, B = h - 40;
+    const sx = tau => L + (Math.log(tau) - Math.log(TAU_MIN)) / (Math.log(TAU_MAX) - Math.log(TAU_MIN)) * (R - L);
+    const sy = s => B - Math.max(0, Math.min(S_MAX, s)) / S_MAX * (B - T);
+    mapGeom = { sx, sy };
+    g.strokeStyle = css('--grid'); g.lineWidth = 1;
+    g.fillStyle = css('--muted'); g.font = '11px "IBM Plex Mono", monospace';
+    [10, 20, 50, 100, 200, 500].forEach(v => {
+      g.beginPath(); g.moveTo(sx(v), T); g.lineTo(sx(v), B); g.stroke();
+      g.textAlign = 'center'; g.fillText(v, sx(v), B + 16);
+    });
+    for (let s = 0; s <= S_MAX; s += 10) {
+      g.beginPath(); g.moveTo(L, sy(s)); g.lineTo(R, sy(s)); g.stroke();
+      g.textAlign = 'right'; g.fillText(s, L - 8, sy(s) + 4);
+    }
+    g.textAlign = 'center';
+    g.fillText('relative print-time index τ (log scale) → slower', (L + R) / 2, h - 8);
+    g.save(); g.translate(14, (T + B) / 2); g.rotate(-Math.PI / 2);
+    g.fillText('worst-case strength ½σt + ½σc (MPa)', 0, 0); g.restore();
+    g.textAlign = 'left';
+
+    const muted = css('--muted');
+    D.cloud.forEach(c => {
+      g.globalAlpha = c[3] === 0.2 ? 0.5 : 0.22;
+      g.fillStyle = muted;
+      g.beginPath(); g.arc(sx(c[6]), sy(c[5]), 2.2, 0, Math.PI * 2); g.fill();
+    });
+    g.globalAlpha = 1;
+    g.strokeStyle = css('--fail'); g.lineWidth = 2;
+    g.beginPath();
+    D.pareto.forEach((p, i) => { const X = sx(p[6]), Y = sy(p[5]); i ? g.lineTo(X, Y) : g.moveTo(X, Y); });
+    g.stroke();
+    g.fillStyle = css('--fail');
+    D.pareto.forEach(p => { g.beginPath(); g.arc(sx(p[6]), sy(p[5]), 3.2, 0, Math.PI * 2); g.fill(); });
+
+    if (deView) {
+      const hot = css('--hot');
+      deView.points.forEach(p => {
+        g.globalAlpha = p.feasible ? 0.9 : 0.45;
+        g.fillStyle = p.feasible ? hot : 'transparent';
+        g.strokeStyle = hot; g.lineWidth = 1.4;
+        g.beginPath(); g.arc(sx(p.tau), sy(p.s), 4.2, 0, Math.PI * 2);
+        p.feasible ? g.fill() : g.stroke();
+      });
+      g.globalAlpha = 1;
+    }
+    // current recipe
+    const cs = composite(state.wc[0], state.wc[1]);
+    const cx = sx(state.tau), cy = sy(cs);
+    g.strokeStyle = css('--fg'); g.lineWidth = 2.5;
+    g.beginPath(); g.arc(cx, cy, 8, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = css('--fg'); g.font = '600 12px "IBM Plex Mono", monospace';
+    const label = `${cs.toFixed(1)} MPa · τ ${state.tau.toFixed(0)}`;
+    g.textAlign = cx > R - 160 ? 'right' : 'left';
+    g.fillText(label, cx + (cx > R - 160 ? -14 : 14), cy - 10);
+    g.textAlign = 'left';
+  }
+
+  mc.addEventListener('click', e => {
+    if (!mapGeom) return;
+    const r = mc.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = null, bd = 14 * 14;
+    D.cloud.concat(D.pareto).forEach(c => {
+      const dx = mapGeom.sx(c[6]) - mx, dy = mapGeom.sy(c[5]) - my, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = c; }
+    });
+    if (best) setRecipe(best.slice(0, 5));
+  });
+
+  let optResult = null, optRunning = false;
+  function objectiveFor(kind, fast) {
+    const pm = D.cases.pedal, hm = D.cases.handle;
+    return x => {
+      const wc = M.worstCase(x, fast), tau = M.printTime(x[2], x[3], x[4]);
+      if (kind === 'strength') return { f: -composite(wc[0], wc[1]) + 1e-6 * tau, wc, tau, feasible: true };
+      const need = kind === 'pedal' ? pm.requirement + pm.margin : hm.requirement + hm.margin;
+      const s = kind === 'pedal' ? wc[1] : wc[0];
+      const viol = Math.max(0, need - s);
+      return { f: tau + 1e4 * viol, wc, tau, feasible: viol === 0 };
+    };
+  }
+  function roundBest(x, obj) {
+    let best = null;
+    for (let m = 0; m < 16; m++) {
+      const c = x.slice();
+      [0, 1, 2, 4].forEach((d, k) => {
+        c[d] = (m >> k) & 1 ? Math.ceil(c[d]) : Math.floor(c[d]);
+        c[d] = Math.min(D.bounds[d][1], Math.max(D.bounds[d][0], c[d]));
+      });
+      const r = obj(c);
+      if (!best || r.f < best.r.f) best = { x: c, r };
+    }
+    return best;
+  }
+  // Local pattern search on whole machine units (steps 8, 4, 2, 1) to finish off the evolution result
+  function polish(start, obj) {
+    let cur = start.x.slice(), cr = start.r;
+    for (const step of [8, 4, 2, 1]) {
+      let improved = true;
+      while (improved) {
+        improved = false;
+        for (const d of [0, 1, 2, 4]) for (const sgn of [-1, 1]) {
+          const c = cur.slice();
+          c[d] = Math.min(D.bounds[d][1], Math.max(D.bounds[d][0], c[d] + sgn * step));
+          const r = obj(c);
+          if (r.f < cr.f - 1e-12) { cur = c; cr = r; improved = true; }
+        }
+      }
+    }
+    return { x: cur, r: cr };
+  }
+  $('optRun').addEventListener('click', () => {
+    if (optRunning) return;
+    optRunning = true;
+    $('optRun').disabled = true; $('optLoad').disabled = true;
+    $('optRecipe').textContent = 'Searching… the best recipe appears here when the run finishes.';
+    const kind = $('objective').value;
+    const obj = objectiveFor(kind, true);          // fast 17-point check during the search
+    const objFull = objectiveFor(kind, false);     // full 81-point check for the final recipe
+    // One population per tested layer height (0.2 and 0.8 mm), as in the Python optimiser
+    const seed0 = 7 + Math.floor(Math.random() * 1000);
+    const des = D.layerLevels.map((L, k) => M.createDE(obj, { pop: 24, seed: seed0 + k, layer: L }));
+    const GENS = 45;
+    let gen = 0;
+    const frame = () => {
+      const rs = des.map(d => d.step()); gen = rs[0].gen;
+      const pts = [];
+      rs.forEach(r => r.population.forEach((x, i) => pts.push({ tau: r.infos[i].tau, s: composite(r.infos[i].wc[0], r.infos[i].wc[1]), feasible: r.infos[i].feasible })));
+      deView = { points: pts };
+      drawMap();
+      $('genBar').style.width = `${gen / GENS * 100}%`;
+      const bi = rs[0].bestInfo.f <= rs[1].bestInfo.f ? rs[0].bestInfo : rs[1].bestInfo;
+      $('optStatus').textContent = `Generation ${gen} / ${GENS} · best so far: ${composite(bi.wc[0], bi.wc[1]).toFixed(2)} MPa worst-case, τ ${bi.tau.toFixed(1)}${bi.feasible ? '' : ' (not yet feasible)'}`;
+      // ~65 ms per generation so the audience can watch the population converge (about 3 s in total)
+      if (gen < GENS) { setTimeout(() => requestAnimationFrame(frame), reduceMotion ? 0 : 65); return; }
+      // Round each population's best to machine units, polish with a local search, keep the better one
+      const finals = rs.map(r => polish(roundBest(r.best, objFull), objFull));
+      const rb = finals[0].r.f <= finals[1].r.f ? finals[0] : finals[1];
+      optResult = rb.x;
+      const p = M.predict(rb.x);
+      $('optRecipe').innerHTML =
+        `nozzle ${rb.x[0]} °C · bed ${rb.x[1]} °C<br>speed ${rb.x[2]} mm/s · layer ${rb.x[3]} mm · infill ${rb.x[4]} %<br>` +
+        `σt ${p[0].toFixed(2)} · σc ${p[1].toFixed(2)} MPa<br>worst case ${rb.r.wc[0].toFixed(2)} / ${rb.r.wc[1].toFixed(2)} MPa · τ ${rb.r.tau.toFixed(1)}` +
+        (rb.r.feasible ? '' : '<br><span style="color:var(--fail)">requirement not met</span>');
+      $('optStatus').textContent = `Done after ${GENS} generations. Result rounded to whole machine units, refined by a local search and re-checked against all ${M.stencilSize} drift scenarios.`;
+      $('optRun').disabled = false; $('optLoad').disabled = false;
+      optRunning = false;
+    };
+    requestAnimationFrame(frame);
+  });
+  $('optLoad').addEventListener('click', () => { if (optResult) setRecipe(optResult); });
+
+  // Inspection hook used by the automated feature tests (read-only use)
+  window.PrintLab = { state, model: M, data: D, rigs, getShap: () => shapCache, isOptimising: () => optRunning,
+                     getMapGeom: () => mapGeom, getOptResult: () => optResult };
+
+  // ---------- boot ----------
+  update();
+  clearTimeout(shapTimer);       // draw the first explanation immediately instead of after the debounce
+  drawShap(false);
+  if (!reduceMotion) requestAnimationFrame(drawPrint);
+  window.addEventListener('resize', () => { drawMap(); if (reduceMotion) requestAnimationFrame(drawPrint); });
+})();
+</script>

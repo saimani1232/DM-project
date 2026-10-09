@@ -1,0 +1,9 @@
+Case,Target,Nozzle_Temp_C,Bed_Temp_C,Print_Speed_mm_per_s,Layer_Height_mm,Infill_Density_percent,Base_Value_MPa,SHAP_Nozzle_Temp_C_MPa,SHAP_Bed_Temp_C_MPa,SHAP_Print_Speed_mm_per_s_MPa,SHAP_Layer_Height_mm_MPa,SHAP_Infill_Density_percent_MPa,Prediction_MPa,Base_plus_SHAP_MPa
+Composite optimum,Tensile,222.0,94.0,35.0,0.2,96.0,23.114,0.953,0.002,2.618,4.837,18.886,50.41,50.41
+Brake Pedal recipe,Tensile,224.0,76.0,35.0,0.8,96.0,23.114,0.852,0.015,2.381,-5.002,16.358,37.719,37.719
+Door Handle recipe,Tensile,225.0,85.0,70.0,0.8,96.0,23.114,0.717,-0.015,-3.357,-4.505,14.828,30.781,30.781
+Weakest hold-out specimen (measured T=5.8 MPa),Tensile,210.0,110.0,70.0,0.8,20.0,23.114,-0.357,-0.002,-1.781,-2.176,-13.237,5.562,5.562
+Composite optimum,Compressive,222.0,94.0,35.0,0.2,96.0,28.907,1.211,-0.003,3.259,6.024,23.618,63.015,63.015
+Brake Pedal recipe,Compressive,224.0,76.0,35.0,0.8,96.0,28.907,1.097,0.022,2.998,-6.241,20.486,47.269,47.269
+Door Handle recipe,Compressive,225.0,85.0,70.0,0.8,96.0,28.907,0.92,-0.024,-4.192,-5.627,18.57,38.554,38.554
+Weakest hold-out specimen (measured T=5.8 MPa),Compressive,210.0,110.0,70.0,0.8,20.0,28.907,-0.447,0.002,-2.212,-2.699,-16.519,7.032,7.032

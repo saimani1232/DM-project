@@ -1,0 +1,6 @@
+Parameter,Optimal_Value,Local_Perturbation,Low_Value,High_Value,Tensile_at_Low,Tensile_at_High,Local_Tensile_Change_MPa,Compressive_at_Low,Compressive_at_High,Local_Compressive_Change_MPa,FullRange_Tensile_Swing_MPa,FullRange_Compressive_Swing_MPa,Tensile_Drop_From_Optimum_Worst_MPa,Near_Optimal_Window_(>=99%_composite)
+Nozzle Temp (°C),222.0,±10% (clipped to tested range),200.0,244.2,48.01,50.28,2.27,59.97,62.9,2.929,2.397,3.074,2.395,215.3 - 244.7
+Bed Temp (°C),94.0,±10% (clipped to tested range),84.6,103.4,50.41,50.4,0.012,63.02,63.02,0.0,0.042,0.04,0.042,50.0 - 110.0
+Print Speed (mm/s),35.0,±10% (clipped to tested range),31.5,38.5,50.41,50.41,0.0,63.02,63.02,0.0,9.157,11.377,9.157,10.0 - 40.0
+Layer Height (mm),0.2,switch to 0.8 mm,0.2,0.8,50.41,37.7,12.707,63.02,47.23,15.789,12.707,15.789,12.707,0.2
+Infill Density (%),96.0,±10% (clipped to tested range),86.4,100.0,40.52,50.41,9.885,50.65,63.02,12.368,40.369,50.431,40.369,90.5 - 100.0

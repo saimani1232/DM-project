@@ -1,0 +1,6 @@
+Parameter,R2_Drop_Mean,R2_Drop_Std,Relative_Importance_%
+Infill_Density_percent,1.6703,0.2075,87.884
+Layer_Height_mm,0.1828,0.0253,9.6186
+Print_Speed_mm_per_s,0.042,0.0065,2.2104
+Nozzle_Temp_C,0.0055,0.0006,0.2869
+Bed_Temp_C,-0.0,0.0,0.0

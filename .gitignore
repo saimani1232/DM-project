@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# LaTeX build files
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/main.pdf
+# OS / editor
+.DS_Store
+Thumbs.db
+~$*
+.vscode/
+.idea/

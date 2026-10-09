@@ -1,0 +1,8 @@
+,min,max,mean,std,skewness,n_levels
+Nozzle_Temp_C,200.0,250.0,223.969,17.439,0.056,6
+Bed_Temp_C,50.0,110.0,79.191,22.492,0.046,4
+Print_Speed_mm_per_s,10.0,70.0,40.235,22.365,-0.047,4
+Layer_Height_mm,0.2,0.8,0.51,0.3,-0.068,2
+Infill_Density_percent,20.0,100.0,58.12,27.848,0.058,5
+Tensile_Strength_Mpa,5.8,50.6,23.114,11.987,0.336,57
+Compressive_Strength_Mpa,7.3,63.3,28.907,14.98,0.336,57

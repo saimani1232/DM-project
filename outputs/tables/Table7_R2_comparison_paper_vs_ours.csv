@@ -1,0 +1,28 @@
+Model,Tensile_R2,Compressive_R2,Evaluation
+Adam-optimised ANN (Paper),0.93,0.98,Munshi et al. - Taguchi L15 validation
+Bayesian-regularised ANN (Paper),0.9,0.95,Munshi et al. - Taguchi L15 validation
+"Decision Tree (literature, Table 7)",0.66,0.8741,Other studies / other datasets
+"SVM (literature, Table 7)",0.8,0.943,Other studies / other datasets
+"Random Forest (literature, Table 7)",0.74,0.8747,Other studies / other datasets
+"XGBoost (literature, Table 7)",0.8962,0.9208,Other studies / other datasets
+"SVR (literature, Table 7)",0.9215,0.8359,Other studies / other datasets
+"k-NN (literature, Table 7)",0.8443,0.934,Other studies / other datasets
+"AdaBoost (literature, Table 7)",0.8893,0.9126,Other studies / other datasets
+Adam-optimised ANN (our replication),0.9845,0.9744,This work - hold-out test set (n = 77)
+Adam-optimised ANN (our replication),0.9818,0.9772,This work - 5-fold CV mean (n = 383)
+Bayesian-regularised ANN (our replication),0.9975,0.9973,This work - hold-out test set (n = 77)
+Bayesian-regularised ANN (our replication),0.9979,0.9979,This work - 5-fold CV mean (n = 383)
+SVR (ours),0.9874,0.9874,This work - hold-out test set (n = 77)
+SVR (ours),0.9805,0.9803,This work - 5-fold CV mean (n = 383)
+Decision Tree (ours),0.9993,0.9993,This work - hold-out test set (n = 77)
+Decision Tree (ours),0.9984,0.9983,This work - 5-fold CV mean (n = 383)
+AdaBoost (ours),0.9634,0.9638,This work - hold-out test set (n = 77)
+AdaBoost (ours),0.9561,0.9554,This work - 5-fold CV mean (n = 383)
+Tuned Random Forest (proposed),0.9993,0.9993,This work - hold-out test set (n = 77)
+Tuned Random Forest (proposed),0.9983,0.9982,This work - 5-fold CV mean (n = 383)
+Extra Trees (proposed),0.9991,0.9991,This work - hold-out test set (n = 77)
+Extra Trees (proposed),0.9985,0.9985,This work - 5-fold CV mean (n = 383)
+Histogram Gradient Boosting (proposed),0.9996,0.9996,This work - hold-out test set (n = 77)
+Histogram Gradient Boosting (proposed),0.9995,0.9995,This work - 5-fold CV mean (n = 383)
+XGBoost (proposed),0.9986,0.9987,This work - hold-out test set (n = 77)
+XGBoost (proposed),0.9982,0.9982,This work - 5-fold CV mean (n = 383)

@@ -1,0 +1,11 @@
+Target,Parameter,Mean_Abs_SHAP_MPa,Share_%
+Tensile,Nozzle Temp (°C),0.5905,3.88
+Tensile,Bed Temp (°C),0.011,0.07
+Tensile,Print Speed (mm/s),1.6698,10.97
+Tensile,Layer Height (mm),3.4853,22.89
+Tensile,Infill Density (%),9.4713,62.2
+Compressive,Nozzle Temp (°C),0.7463,3.92
+Compressive,Bed Temp (°C),0.013,0.07
+Compressive,Print Speed (mm/s),2.0912,10.98
+Compressive,Layer Height (mm),4.357,22.88
+Compressive,Infill Density (%),11.8369,62.15
