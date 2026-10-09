@@ -8,8 +8,7 @@
 1. Go to https://www.overleaf.com and sign in (a free account is enough).
 2. **New Project → Upload Project** → choose `IEEE_paper_overleaf.zip` (in this folder).
 3. Overleaf opens `main.tex` and compiles it automatically (Menu → Compiler: **pdfLaTeX**).
-4. Edit the author block (search for `Author One`) with the team's names, department, institution and e-mails.
-5. Download the PDF from the **Download PDF** button.
+4. Download the PDF from the **Download PDF** button.
 
 ## Compile locally
 MiKTeX is installed on this PC (`%LOCALAPPDATA%\Programs\MiKTeX`). From the `paper` folder, run this twice (the second run fixes cross-references):
@@ -25,6 +24,5 @@ python paper/make_paper_figures.py
 ```
 
 ## Before submitting
-- Replace the author placeholders.
 - If the conference requires it, add the copyright notice line the conference provides (IEEE conferences send a `\IEEEpubid{...}` line).
 - At 12 pt with 1.15 spacing (course rule) the paper is 9 pages. If it is later submitted to a real IEEE conference, remove `12pt` from `\documentclass`, the `\setstretch{1.15}` line and the two `\normalsize` lines to return to the standard 10 pt IEEE layout (about 6 pages).

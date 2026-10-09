@@ -245,7 +245,7 @@ boxes = [
     ('REFERENCE PAPER', ['G.A. Munshi, V.M. Kulkarni, S. Yargatti', '"Computation of tensile and compressive strengths of additively manufactured ABS material for automotive applications using ANN algorithms"', 'Next Materials 10 (2026) 101420']),
     ('KEY RESULTS', [f'383-sample ABS dataset, 5 FDM parameters', f'Best model: {best_pretty}, CV R² = {fmt(b_cv[T]["R2_Mean"], 4)}',
                      f'SHAP explanations in MPa', f'Robust optimum: {comp.Predicted_Tensile_MPa:.1f} / {comp.Predicted_Compressive_MPa:.1f} MPa']),
-    ('TEAM', ['Roll numbers: 016, 021, 028, 035', '[add team member names]', 'Final Review']),
+    ('TEAM', ['016  Gedela Kiran Kumar', '021  Kapuluru Chenchu Sai Sashank', '028  Sai Mani', '035  Perumalla Krishna Murthy', 'CSE, Amrita Vishwa Vidyapeetham, Amaravati']),
 ]
 for k, (h, lines) in enumerate(boxes):
     x = MARGIN + k * (CONTENT_W // 3)

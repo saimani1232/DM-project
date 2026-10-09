@@ -1,7 +1,8 @@
 # Optimization and Machine Learning Prediction of Tensile and Compressive Strengths for Additively Manufactured ABS Automotive Components
 
 **Course:** Introduction to Digital Manufacturing
-**Team (roll numbers):** 016, 021, 028, 035 — _[add the full names and register numbers]_
+**Team:** 016 – Gedela Kiran Kumar; 021 – Kapuluru Chenchu Sai Sashank; 028 – Sai Mani; 035 – Perumalla Krishna Murthy
+**Institution:** Department of Computer Science and Engineering, Amrita Vishwa Vidyapeetham, Amaravati Campus
 **Base paper:** G.A. Munshi, V.M. Kulkarni, S. Yargatti, "Computation of tensile and compressive strengths of additively manufactured ABS material for automotive applications using ANN algorithms", *Next Materials* 10 (2026) 101420. https://doi.org/10.1016/j.nxmate.2025.101420
 **Dataset source:** https://doi.org/10.5281/zenodo.15449938 (Zenodo record 15449938, version 4, CC-BY 4.0)
 
